@@ -95,9 +95,15 @@ Infrastructure
 │   ├── db.php
 │   └── feature_flags.php
 │
+├── /cli
+│   ├── process_inquiry.php
+│   ├── inquiry-template.yaml
+│   └── lib/
+│
 ├── /db
 │   ├── init.sql
 │   ├── schema/
+│   │   └── core.sql
 │   └── migrations/
 │
 └── README.md

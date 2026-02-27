@@ -49,10 +49,15 @@ src/
   templates/           — HTML templates
   assets/              — static files
 
+cli/
+  process_inquiry.php  — CLI entry point (no Docker required)
+  inquiry-template.yaml — blank inquiry input template
+  lib/                 — InquiryParser, PriceCalculator, TemplateRenderer
+
 db/
-  init.sql             — initial schema run on first container start
-  schema/              — schema definition files (reference)
-  migrations/          — incremental schema changes
+  init.sql             — bootstraps the database on first container start
+  schema/core.sql      — authoritative schema reference (mirrors init.sql)
+  migrations/          — incremental schema changes (post-initial-setup)
 ```
 
 ---
