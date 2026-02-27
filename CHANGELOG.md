@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added (feature/db-schema)
+- `db/schema/core.sql` — authoritative schema reference for the inquiry/gig management MVP:
+  tables `customers`, `contacts`, `customer_contacts`, `venues`, `gigs`, `song_requests`
+- `db/init.sql` now creates all tables on first container start
+
+### Changed (feature/db-schema)
+- `AGENTS.md` §4 — repo tree updated with `cli/` and `db/schema/core.sql`
+- `CLAUDE.md` — file layout updated to reflect `cli/` and schema file
+
+---
+
 ### Added
 - `CLAUDE.md` — Claude Code operational instructions
 - `README.md` — project overview and local setup guide

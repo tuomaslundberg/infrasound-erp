@@ -1,26 +1,17 @@
 -- ------------------------------------------------------------
--- ERP Database Initialisation
+-- Core schema — inquiry and gig management
 -- ------------------------------------------------------------
--- This file is run automatically by the MariaDB Docker container
--- on first start (mounted to /docker-entrypoint-initdb.d/init.sql).
---
--- Rules (see AGENTS.md §7):
---   - Character set: utf8mb4 / utf8mb4_unicode_ci
---   - All timestamps stored in UTC
---   - Monetary values stored as integers (eurocents)
---   - Deletions are soft (deleted_at timestamp, not DELETE)
---   - Schema changes after initial setup belong in db/migrations/
---   - No DROP statements in this file
---
--- db/schema/core.sql is the human-readable reference that mirrors
--- this schema. Keep both in sync when making changes.
+-- Conventions (see AGENTS.md §7 and db/init.sql header):
+--   - All timestamps in UTC
+--   - Monetary values as INT (eurocents)
+--   - Soft deletes via deleted_at (NULL = active)
+--   - No DROP statements here; schema changes go in db/migrations/
 -- ------------------------------------------------------------
-
-SET NAMES utf8mb4;
-SET time_zone = '+00:00';
 
 -- ------------------------------------------------------------
 -- customers
+-- A customer is the contracting party — either a person (e.g.
+-- a wedding couple) or a company/organisation.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS customers (
     id          INT UNSIGNED    NOT NULL AUTO_INCREMENT,
@@ -35,6 +26,11 @@ CREATE TABLE IF NOT EXISTS customers (
 
 -- ------------------------------------------------------------
 -- contacts
+-- A contact is the human we correspond with. For personal
+-- customers this is usually the customer themselves; for
+-- companies it may be a separate event coordinator.
+-- One contact can be associated with multiple customers
+-- (e.g. a promoter who books for several venues).
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS contacts (
     id          INT UNSIGNED    NOT NULL AUTO_INCREMENT,
@@ -50,7 +46,10 @@ CREATE TABLE IF NOT EXISTS contacts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
--- customer_contacts  (bridge: contact can belong to multiple customers)
+-- customer_contacts  (bridge table)
+-- Many-to-many: a customer can have multiple contacts, and a
+-- contact can represent multiple customers.
+-- is_primary = 1 marks the default contact for a customer.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS customer_contacts (
     customer_id INT UNSIGNED    NOT NULL,
@@ -64,6 +63,8 @@ CREATE TABLE IF NOT EXISTS customer_contacts (
 
 -- ------------------------------------------------------------
 -- venues
+-- A venue is a physical location where a gig takes place.
+-- Distance fields support travel cost calculation.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS venues (
     id                      INT UNSIGNED    NOT NULL AUTO_INCREMENT,
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS venues (
     city                    VARCHAR(100),
     postal_code             VARCHAR(10),
     country                 CHAR(2)         NOT NULL DEFAULT 'FI',
+    -- Straight-line distance from Turku city centre (used for distance premium)
     distance_from_turku_km  DECIMAL(7,1),
     notes                   TEXT,
     created_at              DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -82,26 +84,43 @@ CREATE TABLE IF NOT EXISTS venues (
 
 -- ------------------------------------------------------------
 -- gigs
+-- Central table. Represents one booking/inquiry lifecycle
+-- from first contact through to delivery and invoicing.
+--
+-- venue_id and contact_id are nullable because they may not
+-- be known at the inquiry stage.
+--
+-- Monetary fields:
+--   base_price_cents       calculated base price before any adjustment
+--   quoted_price_cents     the actual price sent to the customer
+--   other_travel_costs_cents  costs not covered by per-km calculation
+--     (e.g. ferry, tolls)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gigs (
     id                      INT UNSIGNED    NOT NULL AUTO_INCREMENT,
     customer_id             INT UNSIGNED    NOT NULL,
+    -- Who we correspond with for this specific gig (may differ from customer)
     contact_id              INT UNSIGNED             DEFAULT NULL,
+    -- Venue may be unknown at inquiry stage
     venue_id                INT UNSIGNED             DEFAULT NULL,
     gig_date                DATE            NOT NULL,
     status                  ENUM(
-                                'inquiry',
-                                'quoted',
-                                'confirmed',
-                                'delivered',
-                                'cancelled',
-                                'declined'
+                                'inquiry',      -- received, not yet quoted
+                                'quoted',       -- quote sent, awaiting reply
+                                'confirmed',    -- customer accepted, date reserved
+                                'delivered',    -- gig performed
+                                'cancelled',    -- confirmed but subsequently cancelled
+                                'declined'      -- we were unavailable or declined
                             ) NOT NULL DEFAULT 'inquiry',
+    -- Sales channel through which the inquiry arrived
     channel                 ENUM('mail', 'buukkaa_bandi') NOT NULL DEFAULT 'mail',
+    -- Customer category — determines which mail template family is used
     customer_type           ENUM('wedding', 'company', 'other') NOT NULL DEFAULT 'wedding',
+    -- Human-readable order summary, e.g. "3 x 45 min + ennakkoroudaus"
     order_description       VARCHAR(255),
     base_price_cents        INT                      DEFAULT NULL,
     quoted_price_cents      INT                      DEFAULT NULL,
+    -- Travel distance fields (see PriceCalculator for formula)
     car1_distance_km        DECIMAL(7,1)             DEFAULT NULL,
     car2_distance_km        DECIMAL(7,1)             DEFAULT 0.0,
     other_travel_costs_cents INT                     DEFAULT 0,
@@ -117,6 +136,9 @@ CREATE TABLE IF NOT EXISTS gigs (
 
 -- ------------------------------------------------------------
 -- song_requests
+-- Customer song wishes associated with a gig.
+-- sort_order preserves the customer's preferred sequence.
+-- is_first_dance flags the wedding first dance (performed free of charge).
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS song_requests (
     id              INT UNSIGNED    NOT NULL AUTO_INCREMENT,

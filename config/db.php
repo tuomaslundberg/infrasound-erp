@@ -7,6 +7,7 @@ $pass = getenv('MYSQL_PASSWORD');
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->exec("SET time_zone = '+00:00'");
 } catch (PDOException $e) {
     // Do not expose connection details in output
     error_log('Database connection failed: ' . $e->getMessage());
