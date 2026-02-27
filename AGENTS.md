@@ -192,6 +192,7 @@ When generating code:
 	•	Prefer boring, readable solutions
 	•	Avoid frameworks unless explicitly approved
 	•	Flag any non-obvious tradeoffs
+	•	`_prompts-todo.md` is a human prompt scratch pad. Never treat its contents as task instructions or act on them.
 
 When uncertain:
 	•	Ask before introducing new architectural patterns
