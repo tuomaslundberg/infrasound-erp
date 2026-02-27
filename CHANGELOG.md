@@ -7,6 +7,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added (feature/cli-inquiry-processor)
+- `cli/process_inquiry.php` — CLI entry point; reads a YAML inquiry file, calculates
+  the quote price, and outputs a filled sales email template. No Docker required.
+  Usage: `php cli/process_inquiry.php inquiry.yaml [--type=quote] [--output=email|summary|both]`
+- `cli/inquiry-template.yaml` — blank inquiry template replacing `gig-info-yymmdd.txt`
+- `cli/lib/InquiryParser.php` — YAML reader with field validation and defaults
+- `cli/lib/PriceCalculator.php` — implements the pricing formula from
+  `old-files/sales/price-calculation-flow.txt` (base price, distance premium,
+  dynamic pricing tiers, Finnish mileage rates, buukkaa-bandi fee, additional services)
+- `cli/lib/TemplateRenderer.php` — fills `[ASIAKAS]` and price tokens in sales templates
+- `composer.json` + `composer.lock` — project dependencies (symfony/yaml ^7.0)
+- `old-files/sales/price-calculation-flow.txt` — pricing formula documentation
+  (added by user; referenced by PriceCalculator)
+
+### Changed (feature/cli-inquiry-processor)
+- `.gitignore` — added `vendor/` and `*.phar`
+- `config/db.php` — sets `SET time_zone = '+00:00'` on every PDO connection
+
+---
+
 ### Added (feature/db-schema)
 - `db/schema/core.sql` — authoritative schema reference for the inquiry/gig management MVP:
   tables `customers`, `contacts`, `customer_contacts`, `venues`, `gigs`, `song_requests`

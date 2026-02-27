@@ -1,0 +1,12 @@
+{
+    "name": "infrasound/erp",
+    "description": "Custom ERP/CRM for infrasound.fi",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "symfony/yaml": "^7.0"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
