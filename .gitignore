@@ -5,3 +5,6 @@ vendor
 *.phar
 .env
 old-files
+_prompts-todo.md
+*test.yaml
+composer-setup.php
