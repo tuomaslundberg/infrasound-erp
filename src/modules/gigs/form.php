@@ -4,16 +4,26 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../templates/layout.php';
 require_once __DIR__ . '/../../../cli/lib/PriceCalculator.php';
 
+// ---------------------------------------------------------------------------
+// Mode: create vs edit
+// ---------------------------------------------------------------------------
+$gigId  = isset($routeParams[0]) ? (int)$routeParams[0] : 0;
+$isEdit = $gigId > 0;
 $errors = [];
 
+// DB defaults — populated on GET edit; empty on GET new; ignored on POST
+// (POST values always win over DB values in the $v() helper below)
+$db = [];
+
 // ---------------------------------------------------------------------------
-// POST handler — save inquiry, calculate price, redirect to detail
+// POST handler — save, recalculate price, redirect
 // ---------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // --- Collect and cast inputs ----------------------------------------
+    // --- Collect and cast inputs -------------------------------------------
     $channel           = $_POST['channel']            ?? 'mail';
     $customerType      = $_POST['customer_type']      ?? 'wedding';
+    $status            = $_POST['status']             ?? 'inquiry';
     $customerName      = trim($_POST['customer_name'] ?? '');
     $contactFirstName  = trim($_POST['contact_first_name'] ?? '');
     $contactLastName   = trim($_POST['contact_last_name']  ?? '');
@@ -40,18 +50,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quotedOverrideEur = trim($_POST['quoted_price_override'] ?? '');
     $notes             = trim($_POST['notes']                 ?? '') ?: null;
 
-    // --- Basic validation -------------------------------------------------
-    $errors = [];
-    if ($customerName === '') $errors[] = 'Customer name is required.';
+    // --- Validation --------------------------------------------------------
+    $validStatuses = ['inquiry', 'quoted', 'confirmed', 'delivered', 'cancelled', 'declined'];
+    if ($customerName === '')  $errors[] = 'Customer name is required.';
     if ($contactFirstName === '') $errors[] = 'Contact first name is required.';
-    if ($contactLastName === '') $errors[] = 'Contact last name is required.';
-    if ($venueName === '') $errors[] = 'Venue name is required.';
+    if ($contactLastName === '')  $errors[] = 'Contact last name is required.';
+    if ($venueName === '')    $errors[] = 'Venue name is required.';
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $gigDate)) $errors[] = 'Gig date must be YYYY-MM-DD.';
     if (!in_array($channel, ['mail', 'buukkaa_bandi'], true)) $errors[] = 'Invalid channel.';
     if (!in_array($customerType, ['wedding', 'company', 'other'], true)) $errors[] = 'Invalid customer type.';
+    if (!in_array($status, $validStatuses, true)) $errors[] = 'Invalid status.';
 
     if ($errors) {
-        // Fall through to render form with errors (POST vars preserved via $_POST)
         goto render_form;
     }
 
@@ -60,10 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $calcData = [
         'meta'  => ['channel' => $channel],
         'gig'   => ['distances' => [
-            'from_turku_km'         => $distFromTurku,
-            'car1_trip_km'          => $car1Km,
-            'car2_trip_km'          => $car2Km,
-            'other_travel_costs_eur'=> $otherTravelEur,
+            'from_turku_km'          => $distFromTurku,
+            'car1_trip_km'           => $car1Km,
+            'car2_trip_km'           => $car2Km,
+            'other_travel_costs_eur' => $otherTravelEur,
         ]],
         'order' => [
             'dynamic_pricing_tier1' => $tier1,
@@ -78,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'discount_eur'        => $discountEur,
         ],
     ];
-    $price           = $calculator->calculate($calcData);
-    $basePriceCents  = (int)round($price['gross_total'] * 100);
+    $price            = $calculator->calculate($calcData);
+    $basePriceCents   = (int)round($price['gross_total'] * 100);
     $quotedPriceCents = $quotedOverrideEur !== ''
         ? (int)round((float)$quotedOverrideEur * 100)
         : $basePriceCents;
@@ -88,42 +98,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
-            ->execute([$customerName, 'person']);
-        $customerId = (int)$pdo->lastInsertId();
+        if ($isEdit) {
+            // Load the FK IDs we need for the UPDATE statements
+            $ids = $pdo->prepare(
+                'SELECT customer_id, contact_id, venue_id FROM gigs WHERE id = ? AND deleted_at IS NULL'
+            );
+            $ids->execute([$gigId]);
+            $fk = $ids->fetch(PDO::FETCH_ASSOC);
 
-        $pdo->prepare('INSERT INTO contacts (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)')
-            ->execute([$contactFirstName, $contactLastName, $contactEmail, $contactPhone]);
-        $contactId = (int)$pdo->lastInsertId();
+            if (!$fk) {
+                $pdo->rollBack();
+                $errors[] = 'Gig not found or already deleted.';
+                goto render_form;
+            }
 
-        $pdo->prepare('INSERT INTO customer_contacts (customer_id, contact_id, is_primary) VALUES (?, ?, 1)')
-            ->execute([$customerId, $contactId]);
+            $pdo->prepare('UPDATE customers SET name = ? WHERE id = ?')
+                ->execute([$customerName, $fk['customer_id']]);
 
-        $pdo->prepare(
-            'INSERT INTO venues (name, address_line, city, postal_code, distance_from_turku_km)
-             VALUES (?, ?, ?, ?, ?)'
-        )->execute([$venueName, $venueAddress, $venueCity, $venuePostal, $distFromTurku]);
-        $venueId = (int)$pdo->lastInsertId();
+            if ($fk['contact_id']) {
+                $pdo->prepare(
+                    'UPDATE contacts SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?'
+                )->execute([$contactFirstName, $contactLastName, $contactEmail, $contactPhone, $fk['contact_id']]);
+            }
 
-        $pdo->prepare(
-            'INSERT INTO gigs
-               (customer_id, contact_id, venue_id, gig_date, status, channel, customer_type,
-                order_description, base_price_cents, quoted_price_cents,
-                car1_distance_km, car2_distance_km, other_travel_costs_cents, notes)
-             VALUES (?, ?, ?, ?, \'inquiry\', ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        )->execute([
-            $customerId, $contactId, $venueId, $gigDate, $channel, $customerType,
-            $orderDesc, $basePriceCents, $quotedPriceCents,
-            $car1Km, $car2Km, (int)round($otherTravelEur * 100),
-            $notes,
-        ]);
-        $gigId = (int)$pdo->lastInsertId();
+            if ($fk['venue_id']) {
+                $pdo->prepare(
+                    'UPDATE venues SET name = ?, address_line = ?, city = ?, postal_code = ?,
+                                      distance_from_turku_km = ? WHERE id = ?'
+                )->execute([$venueName, $venueAddress, $venueCity, $venuePostal, $distFromTurku, $fk['venue_id']]);
+            }
+
+            $pdo->prepare(
+                'UPDATE gigs SET gig_date = ?, status = ?, channel = ?, customer_type = ?,
+                                 order_description = ?, base_price_cents = ?, quoted_price_cents = ?,
+                                 car1_distance_km = ?, car2_distance_km = ?,
+                                 other_travel_costs_cents = ?, notes = ?
+                 WHERE id = ?'
+            )->execute([
+                $gigDate, $status, $channel, $customerType, $orderDesc,
+                $basePriceCents, $quotedPriceCents,
+                $car1Km, $car2Km, (int)round($otherTravelEur * 100),
+                $notes, $gigId,
+            ]);
+
+        } else {
+            $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
+                ->execute([$customerName, 'person']);
+            $customerId = (int)$pdo->lastInsertId();
+
+            $pdo->prepare('INSERT INTO contacts (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)')
+                ->execute([$contactFirstName, $contactLastName, $contactEmail, $contactPhone]);
+            $contactId = (int)$pdo->lastInsertId();
+
+            $pdo->prepare('INSERT INTO customer_contacts (customer_id, contact_id, is_primary) VALUES (?, ?, 1)')
+                ->execute([$customerId, $contactId]);
+
+            $pdo->prepare(
+                'INSERT INTO venues (name, address_line, city, postal_code, distance_from_turku_km)
+                 VALUES (?, ?, ?, ?, ?)'
+            )->execute([$venueName, $venueAddress, $venueCity, $venuePostal, $distFromTurku]);
+            $venueId = (int)$pdo->lastInsertId();
+
+            $pdo->prepare(
+                "INSERT INTO gigs
+                   (customer_id, contact_id, venue_id, gig_date, status, channel, customer_type,
+                    order_description, base_price_cents, quoted_price_cents,
+                    car1_distance_km, car2_distance_km, other_travel_costs_cents, notes)
+                 VALUES (?, ?, ?, ?, 'inquiry', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            )->execute([
+                $customerId, $contactId, $venueId, $gigDate, $channel, $customerType,
+                $orderDesc, $basePriceCents, $quotedPriceCents,
+                $car1Km, $car2Km, (int)round($otherTravelEur * 100),
+                $notes,
+            ]);
+            $gigId = (int)$pdo->lastInsertId();
+        }
 
         $pdo->commit();
     } catch (Throwable $e) {
         $pdo->rollBack();
         error_log('Gig save failed: ' . $e->getMessage());
-        $errors[] = 'Database error — the inquiry could not be saved. Check the server error log.';
+        $errors[] = 'Database error — could not save. Check the server error log.';
         goto render_form;
     }
 
@@ -132,32 +187,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ---------------------------------------------------------------------------
-// GET — populate fields from $_POST on validation failure, else empty
+// GET — load DB values for edit, used as defaults in the $v() helper
 // ---------------------------------------------------------------------------
-$v = fn(string $key, mixed $default = '') => htmlspecialchars((string)($_POST[$key] ?? $default));
+if ($isEdit) {
+    $stmt = $pdo->prepare(
+        "SELECT g.gig_date, g.status, g.channel, g.customer_type, g.order_description,
+                g.car1_distance_km, g.car2_distance_km, g.other_travel_costs_cents,
+                g.quoted_price_cents, g.notes,
+                c.name  AS customer_name,
+                co.first_name AS contact_first_name, co.last_name AS contact_last_name,
+                co.email AS contact_email, co.phone AS contact_phone,
+                v.name  AS venue_name, v.address_line AS venue_address,
+                v.city  AS venue_city, v.postal_code AS venue_postal,
+                v.distance_from_turku_km AS dist_from_turku
+         FROM   gigs g
+         JOIN   customers c  ON c.id  = g.customer_id
+         LEFT JOIN contacts co ON co.id = g.contact_id
+         LEFT JOIN venues   v  ON v.id  = g.venue_id
+         WHERE  g.id = ? AND g.deleted_at IS NULL"
+    );
+    $stmt->execute([$gigId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        http_response_code(404);
+        require __DIR__ . '/../../templates/error.php';
+        exit;
+    }
+
+    // Map DB row to the same keys used by POST fields so $v() can pick them up
+    $db = [
+        'gig_date'             => $row['gig_date'],
+        'status'               => $row['status'],
+        'channel'              => $row['channel'],
+        'customer_type'        => $row['customer_type'],
+        'order_desc'           => $row['order_description'] ?? '',
+        'car1_km'              => rtrim(rtrim((string)$row['car1_distance_km'], '0'), '.'),
+        'car2_km'              => rtrim(rtrim((string)$row['car2_distance_km'], '0'), '.'),
+        'other_travel_eur'     => number_format($row['other_travel_costs_cents'] / 100, 2, '.', ''),
+        // Pre-fill override with current quoted price so it's preserved unless user changes it
+        'quoted_price_override'=> $row['quoted_price_cents'] !== null
+            ? number_format($row['quoted_price_cents'] / 100, 2, '.', '')
+            : '',
+        'notes'                => $row['notes'] ?? '',
+        'customer_name'        => $row['customer_name'],
+        'contact_first_name'   => $row['contact_first_name'],
+        'contact_last_name'    => $row['contact_last_name'],
+        'contact_email'        => $row['contact_email'] ?? '',
+        'contact_phone'        => $row['contact_phone'] ?? '',
+        'venue_name'           => $row['venue_name'] ?? '',
+        'venue_address'        => $row['venue_address'] ?? '',
+        'venue_city'           => $row['venue_city'] ?? '',
+        'venue_postal'         => $row['venue_postal'] ?? '',
+        'dist_from_turku'      => $row['dist_from_turku'] ?? '0',
+    ];
+}
+
+// $v() prefers POST values (validation re-render) → DB values (edit) → fallback (new)
+$v = fn(string $key, mixed $fallback = '') =>
+    htmlspecialchars((string)($_POST[$key] ?? $db[$key] ?? $fallback));
 
 render_form:
-render_layout('New inquiry', function () use ($errors, $v) {
+$pageTitle  = $isEdit ? 'Edit — ' . ($db['customer_name'] ?? 'gig') : 'New inquiry';
+$formAction = $isEdit ? '/gigs/' . $gigId . '/edit' : '/gigs/new';
+
+render_layout($pageTitle, function () use ($errors, $v, $isEdit, $gigId, $formAction, $pageTitle) {
 ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">New inquiry</h2>
-    <a href="/gigs" class="btn btn-link btn-sm px-0">← Cancel</a>
+    <h2 class="mb-0"><?= htmlspecialchars($pageTitle) ?></h2>
+    <a href="<?= $isEdit ? '/gigs/' . $gigId : '/gigs' ?>"
+       class="btn btn-link btn-sm px-0">← <?= $isEdit ? 'Back to gig' : 'Cancel' ?></a>
   </div>
 
   <?php if ($errors): ?>
   <div class="alert alert-danger">
     <ul class="mb-0">
-      <?php foreach ($errors as $e): ?>
-        <li><?= htmlspecialchars($e) ?></li>
-      <?php endforeach; ?>
+      <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
     </ul>
   </div>
   <?php endif; ?>
 
-  <form method="post" action="/gigs/new">
+  <form method="post" action="<?= $formAction ?>">
     <div class="row g-3">
 
-      <!-- Channel & type -->
+      <!-- Channel, type, status, date, order -->
       <div class="col-md-6">
         <div class="card h-100">
           <div class="card-header">Inquiry</div>
@@ -165,8 +278,8 @@ render_layout('New inquiry', function () use ($errors, $v) {
             <div class="col-sm-6">
               <label class="form-label">Channel</label>
               <select name="channel" class="form-select">
-                <option value="mail"         <?= $v('channel','mail') === 'mail'         ? 'selected' : '' ?>>Mail</option>
-                <option value="buukkaa_bandi"<?= $v('channel','mail') === 'buukkaa_bandi'? 'selected' : '' ?>>Buukkaa-bandi</option>
+                <option value="mail"          <?= $v('channel','mail') === 'mail'          ? 'selected' : '' ?>>Mail</option>
+                <option value="buukkaa_bandi" <?= $v('channel','mail') === 'buukkaa_bandi' ? 'selected' : '' ?>>Buukkaa-bandi</option>
               </select>
             </div>
             <div class="col-sm-6">
@@ -177,7 +290,19 @@ render_layout('New inquiry', function () use ($errors, $v) {
                 <option value="other"   <?= $v('customer_type','wedding') === 'other'   ? 'selected' : '' ?>>Other</option>
               </select>
             </div>
+            <?php if ($isEdit): ?>
+            <div class="col-sm-6">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select">
+                <?php foreach (['inquiry','quoted','confirmed','delivered','cancelled','declined'] as $s): ?>
+                <option value="<?= $s ?>" <?= $v('status','inquiry') === $s ? 'selected' : '' ?>><?= $s ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-sm-6">
+            <?php else: ?>
             <div class="col-12">
+            <?php endif; ?>
               <label class="form-label">Gig date <span class="text-danger">*</span></label>
               <input type="date" name="gig_date" class="form-control" value="<?= $v('gig_date') ?>" required>
             </div>
@@ -280,7 +405,7 @@ render_layout('New inquiry', function () use ($errors, $v) {
       <!-- Dynamic pricing -->
       <div class="col-md-6">
         <div class="card h-100">
-          <div class="card-header">Dynamic pricing</div>
+          <div class="card-header">Dynamic pricing<?= $isEdit ? ' <small class="text-muted fw-normal">(re-enter to recalculate)</small>' : '' ?></div>
           <div class="card-body">
             <div class="form-check mb-2">
               <input class="form-check-input" type="checkbox" name="tier1" id="tier1"
@@ -303,7 +428,7 @@ render_layout('New inquiry', function () use ($errors, $v) {
       <!-- Additional services -->
       <div class="col-md-6">
         <div class="card h-100">
-          <div class="card-header">Additional services <small class="text-muted fw-normal">(gross prices: see PriceCalculator)</small></div>
+          <div class="card-header">Additional services <small class="text-muted fw-normal">(gross prices)</small></div>
           <div class="card-body row g-2">
             <div class="col-sm-4">
               <label class="form-label">Ennakkoroudaus <small class="text-muted">×200 €</small></label>
@@ -342,7 +467,11 @@ render_layout('New inquiry', function () use ($errors, $v) {
               <label class="form-label">Quoted price override (€ gross)</label>
               <input type="number" name="quoted_price_override" class="form-control" step="0.01" min="0"
                      value="<?= $v('quoted_price_override') ?>">
-              <div class="form-text">Leave blank to use the calculated price.</div>
+              <div class="form-text">
+                <?= $isEdit
+                    ? 'Pre-filled with current price. Clear to use recalculated price.'
+                    : 'Leave blank to use the calculated price.' ?>
+              </div>
             </div>
             <div class="col-md-9">
               <label class="form-label">Notes</label>
@@ -355,8 +484,11 @@ render_layout('New inquiry', function () use ($errors, $v) {
     </div><!-- .row -->
 
     <div class="mt-3 d-flex gap-2">
-      <button type="submit" class="btn btn-primary">Save inquiry</button>
-      <a href="/gigs" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <?= $isEdit ? 'Save changes' : 'Save inquiry' ?>
+      </button>
+      <a href="<?= $isEdit ? '/gigs/' . $gigId : '/gigs' ?>"
+         class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
 <?php

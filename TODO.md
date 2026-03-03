@@ -132,6 +132,8 @@ At this point the ERP should be usable in place of old workflows.
 Small business logic tweaks and copy fixes. Add items here as they come up;
 good `[copilot]` candidates when clearly specified.
 
+- [ ] **Edit mail templates to handle Markdown links correctly** — currently e.g. "Spotify-linkki https://link.to.spotify"; should be "[Spotify-linkki](https://link.to.spotify)"  `[copilot]`
+- [ ] **Consider moving necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
 - [ ] _(add items here)_
 
 ---
