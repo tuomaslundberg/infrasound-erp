@@ -1,0 +1,21 @@
+# Dev environment overlay.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml -p infrasound_dev up -d
+# Or simply: make dev
+#
+# Differences from the base docker-compose.yml:
+#   - Reads credentials from .env.dev
+#   - Uses a separate named volume (db_data_dev) so dev and prod data never mix
+services:
+  php:
+    env_file:
+      - .env.dev
+
+  db:
+    env_file:
+      - .env.dev
+    volumes:
+      - db_data_dev:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  db_data_dev:

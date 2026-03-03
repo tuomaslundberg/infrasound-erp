@@ -74,11 +74,14 @@ Infrastructure
 /infrasound.fi
 │
 ├── docker-compose.yml
+├── docker-compose.dev.yml   ← dev overlay (separate volume + .env.dev)
 ├── Dockerfile
+├── Makefile                 ← make up / make dev / make seed / make down
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md
 ├── CHANGELOG.md
+├── TODO.md
 │
 ├── /src
 │   ├── index.php
@@ -104,9 +107,9 @@ Infrastructure
 │   ├── init.sql
 │   ├── schema/
 │   │   └── core.sql
+│   ├── seeds/
+│   │   └── dev.sql          ← dev fixture data (never run against prod)
 │   └── migrations/
-│
-└── README.md
 
 
 ⸻
