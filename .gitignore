@@ -4,6 +4,7 @@ vendor
 *.log
 *.phar
 .env
+.env.dev
 old-files
 _prompts-todo.md
 *test.yaml
