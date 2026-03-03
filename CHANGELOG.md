@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `TODO.md` — phased task list covering dev infrastructure through accounting;
+  items marked `[copilot]` are suitable for GitHub Copilot Coding Agent delegation
+- `db/seeds/dev.sql` — realistic dev fixture data (5 gigs from 2026 season with
+  venues, customers, contacts, and song requests); sourced from `old-files/future-gigs/`
+
 ### Added (feature/cli-inquiry-processor)
 - `cli/process_inquiry.php` — CLI entry point; reads a YAML inquiry file, calculates
   the quote price, and outputs a filled sales email template. No Docker required.
