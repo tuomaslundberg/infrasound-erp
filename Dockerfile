@@ -5,8 +5,9 @@ FROM php:8.2-apache
 RUN a2enmod rewrite
 COPY ./docker/apache-site.conf /etc/apache2/sites-available/000-default.conf
 
-# Copy your source code into the container
-COPY ./src /var/www/html
+# Copy source and config into the container
+COPY ./src    /var/www/html
+COPY ./config /var/www/config
 
 # Set working directory
 WORKDIR /var/www/html
