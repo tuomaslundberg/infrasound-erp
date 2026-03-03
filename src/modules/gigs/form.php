@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../templates/layout.php';
 require_once __DIR__ . '/../../../cli/lib/PriceCalculator.php';
 
+$errors = [];
+
 // ---------------------------------------------------------------------------
 // POST handler — save inquiry, calculate price, redirect to detail
 // ---------------------------------------------------------------------------
