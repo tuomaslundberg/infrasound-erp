@@ -1,0 +1,61 @@
+# Inquiry template — copy and rename to inquiry-YYMMDD-firstname-lastname.yaml
+# Fill in all fields marked with <...> before running process_inquiry.php.
+#
+# Usage:
+#   php cli/process_inquiry.php inquiry-YYMMDD-name.yaml
+#   php cli/process_inquiry.php inquiry-YYMMDD-name.yaml --output=both | pbcopy
+#   php cli/process_inquiry.php inquiry-YYMMDD-name.yaml --type=sorry-were-booked
+
+meta:
+  channel: mail          # mail | buukkaa_bandi
+  language: fi           # fi  (en templates not yet available)
+
+customer:
+  name: "<Etunimi Sukunimi tai Toiminimi>"
+  type: wedding          # wedding | company | other
+
+contact:                 # Person we correspond with (for weddings, usually same as customer)
+  name: "<Etunimi Sukunimi>"
+  email: ""
+  phone: ""
+
+gig:
+  date: "YYYY-MM-DD"
+  venue:
+    name: ""
+    address: ""
+    city: ""
+    postal_code: ""
+
+  distances:
+    from_turku_km: 0.0   # Straight-line distance from Turku city centre (for travel cost row)
+    car1_trip_km: 0.0    # Estimated total driving distance for main vehicle (4 pax + trailer)
+    car2_trip_km: 0.0    # Estimated total driving distance for auxiliary vehicle (0 if not needed)
+    other_travel_costs_eur: 0.00   # Ferry, tolls, parking, etc. (leave 0 if none/unknown)
+
+order:
+  sets: 3
+  set_duration_min: 45
+  extras: ""             # e.g. "ennakkoroudaus" — free text, appears in summary only
+  dynamic_pricing_tier1: false   # On-season Saturday (May–Sep): adds 50 € net
+  dynamic_pricing_tier2: false   # High-demand date (3–4+ concurrent inquiries): adds 75 € net
+  # quoted_price_eur: 0.00       # Uncomment to override the calculated price in the email
+
+notes: ""
+
+# Additional services — set quantity to 0 to exclude, positive integer to include.
+additional_services:
+  ennakkoroudaus: 0          # Pre-rigging visit (200 € gross / unit)
+  song_requests_extra: 0     # Extra song requests outside repertoire (100 € gross / unit)
+  extra_performances: 0      # Extra programme items (100 € gross / unit)
+  background_music_h: 0      # Background music (300 € gross / hour)
+  live_album: 0              # Live album recording (300 € gross / unit)
+  discount_eur: 0.00         # Custom discount (gross EUR amount, positive = deducted)
+
+# Song requests from the customer (optional — for your records, not used in email)
+song_requests:
+  - artist: ""
+    title: ""
+    first_dance: true    # Mark true for the wedding first dance (performed free of charge)
+  - artist: ""
+    title: ""

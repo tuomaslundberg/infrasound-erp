@@ -2,5 +2,9 @@
 node_modules
 vendor
 *.log
+*.phar
 .env
 old-files
+_prompts-todo.md
+*test.yaml
+composer-setup.php
