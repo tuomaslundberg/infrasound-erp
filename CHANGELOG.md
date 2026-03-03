@@ -17,6 +17,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `Makefile` — `make up` / `make dev` / `make down[-dev]` / `make seed` / `make logs[-dev]` /
   `make shell-db[-dev]`; switches between prod (`.env`) and dev (`.env.dev`) environments
 - `.env.dev` — dev database credentials (gitignored; copy and fill locally)
+- `docker/apache-site.conf` + `Dockerfile` — replace default Apache vhost to enable
+  `AllowOverride All` for `.htaccess` rewrite rules
+- `src/.htaccess` — front controller rewrite: all non-file/dir requests → `index.php`
+- `src/index.php` — URL router; route table maps patterns to controller files;
+  `is_public` flag per route keeps the door open for unauthenticated public routes (Phase 3)
+- `src/templates/layout.php` — Bootstrap 5 shell with navbar; controllers call
+  `render_layout($title, callable $content)`
+- `src/templates/error.php` — 404 / 501 error page
+- `src/modules/gigs/list.php` — gig list page (DB-backed; date, customer, venue, status,
+  quoted price, channel)
+- `src/modules/gigs/detail.php` — gig detail page (DB-backed; pricing, venue, notes)
+- `src/modules/gigs/form.php` — inquiry form placeholder (full form is next Phase 1 task)
 
 ### Added (feature/cli-inquiry-processor)
 - `cli/process_inquiry.php` — CLI entry point; reads a YAML inquiry file, calculates
