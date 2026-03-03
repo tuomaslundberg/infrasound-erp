@@ -6,6 +6,7 @@ services:
     volumes:
       - ./src:/var/www/html
       - ./config:/var/www/config
+      - ./cli:/var/www/cli
     env_file:
       - .env
     depends_on:

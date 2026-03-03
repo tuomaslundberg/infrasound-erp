@@ -28,7 +28,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `src/modules/gigs/list.php` — gig list page (DB-backed; date, customer, venue, status,
   quoted price, channel)
 - `src/modules/gigs/detail.php` — gig detail page (DB-backed; pricing, venue, notes)
-- `src/modules/gigs/form.php` — inquiry form placeholder (full form is next Phase 1 task)
+- `src/modules/gigs/form.php` — inquiry form placeholder (full form implemented in next commit)
+
+### Changed
+- `src/modules/gigs/form.php` — full inquiry form (replaces placeholder); GET + POST handler;
+  saves customer, contact, venue, gig in one transaction; calculates base_price_cents via
+  PriceCalculator (reused from cli/); supports quoted price override; PRG redirect to detail
+- `docker-compose.yml` — mount `./cli:/var/www/cli` so web PHP can require PriceCalculator
+- `Dockerfile` — `COPY ./cli /var/www/cli` for non-volume-mount contexts
+- `src/templates/layout.php` — remove incorrect Bootstrap JS SRI hash (was blocking JS)
+- `db/seeds/dev.sql` — TRUNCATE block makes `make seed` idempotent
+- `Makefile` — add `reset-dev` target (destroys dev volume and restarts fresh)
 
 ### Added (feature/cli-inquiry-processor)
 - `cli/process_inquiry.php` — CLI entry point; reads a YAML inquiry file, calculates
