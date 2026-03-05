@@ -12,6 +12,16 @@
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 
+-- Wipe existing data so the script is idempotent (safe to re-run)
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE song_requests;
+TRUNCATE TABLE gigs;
+TRUNCATE TABLE customer_contacts;
+TRUNCATE TABLE venues;
+TRUNCATE TABLE contacts;
+TRUNCATE TABLE customers;
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- ------------------------------------------------------------
 -- customers  (all weddings → type = 'person')
 -- ------------------------------------------------------------

@@ -26,7 +26,10 @@ render_layout($gig['customer_name'], function () use ($gig) {
 ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0"><?= htmlspecialchars($gig['customer_name']) ?></h2>
-    <a href="/gigs/<?= (int)$gig['id'] ?>/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
+    <div class="d-flex gap-2">
+      <a href="/gigs/<?= (int)$gig['id'] ?>/quote" class="btn btn-primary btn-sm">Quote email</a>
+      <a href="/gigs/<?= (int)$gig['id'] ?>/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
+    </div>
   </div>
 
   <div class="row g-3">

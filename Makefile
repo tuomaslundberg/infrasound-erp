@@ -1,4 +1,4 @@
-.PHONY: up dev down down-dev seed logs logs-dev shell-db shell-db-dev
+.PHONY: up dev down down-dev reset-dev seed logs logs-dev shell-db shell-db-dev
 
 # ---------------------------------------------------------------------------
 # Production environment  (uses .env → fi_infrasound)
@@ -25,6 +25,11 @@ dev:
 
 down-dev:
 	docker compose -p infrasound_dev down
+
+# Destroy dev volume and start fresh (data is lost)
+reset-dev:
+	docker compose -p infrasound_dev down -v
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml -p infrasound_dev up -d
 
 logs-dev:
 	docker compose -p infrasound_dev logs -f

@@ -15,6 +15,7 @@ $routes = [
     ['#^/gigs/new$#',                   'modules/gigs/form.php',          false],
     ['#^/gigs/(\d+)$#',                 'modules/gigs/detail.php',        false],
     ['#^/gigs/(\d+)/edit$#',            'modules/gigs/form.php',          false],
+    ['#^/gigs/(\d+)/quote$#',           'modules/gigs/quote.php',         false],
 ];
 
 // ---------------------------------------------------------------------------
