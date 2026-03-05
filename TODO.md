@@ -133,7 +133,9 @@ Small business logic tweaks and copy fixes. Add items here as they come up;
 good `[copilot]` candidates when clearly specified.
 
 - [ ] **Edit mail templates to handle Markdown links correctly** — currently e.g. "Spotify-linkki https://link.to.spotify"; should be "[Spotify-linkki](https://link.to.spotify)"  `[copilot]`
-- [ ] **Consider moving necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
+- [ ] **Move necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
+- [ ] **Retain complete price calculation logic in gig entities** — This needs a slight scema change (a few new INT columns on `gigs`) `[copilot]`
+- [ ] **Refactor dynamic pricing flags to radio** — These are either-or in the sense that Tier 2 can't be activated without Tier 1; therefore we should have EITHER Tier 1 OR (Tier 1 AND Tier 2) `[copilot]`
 - [ ] _(add items here)_
 
 ---
