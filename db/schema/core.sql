@@ -177,3 +177,29 @@ CREATE TABLE IF NOT EXISTS song_requests (
     PRIMARY KEY (id),
     CONSTRAINT fk_sr_gig FOREIGN KEY (gig_id) REFERENCES gigs (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- users
+-- Session-based authentication. Roles in ascending order:
+--   musician < owner < admin < developer
+-- See config/auth.php for role hierarchy logic.
+-- Bootstrap: INSERT a first owner row after applying migration 002.
+--   php -r "echo password_hash('password', PASSWORD_DEFAULT);"
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+    id            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    username      VARCHAR(64)   NOT NULL,
+    password_hash VARCHAR(255)  NOT NULL,
+    role          ENUM(
+                      'developer',
+                      'admin',
+                      'owner',
+                      'musician',
+                      'guest'
+                  ) NOT NULL DEFAULT 'musician',
+    created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at    DATETIME               DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

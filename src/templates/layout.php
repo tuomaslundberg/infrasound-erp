@@ -7,8 +7,11 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../config/auth.php';
+
 function render_layout(string $title, callable $content): void
 {
+    $currentUser = auth_user();
 ?>
 <!doctype html>
 <html lang="fi">
@@ -28,10 +31,25 @@ function render_layout(string $title, callable $content): void
     <a class="navbar-brand" href="/">infrasound ERP</a>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto">
+        <?php if ($currentUser !== null): ?>
         <li class="nav-item">
           <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/gigs') ? 'active' : '' ?>"
              href="/gigs">Gigs</a>
         </li>
+        <?php endif; ?>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <?php if ($currentUser !== null): ?>
+        <li class="nav-item">
+          <span class="navbar-text me-3 text-secondary small">
+            <?= htmlspecialchars($currentUser['username']) ?>
+            <span class="badge bg-secondary ms-1"><?= htmlspecialchars($currentUser['role']) ?></span>
+          </span>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/logout">Sign out</a>
+        </li>
+        <?php endif; ?>
       </ul>
     </div>
   </div>
