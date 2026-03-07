@@ -7,6 +7,9 @@ vendor
 .env.dev
 old-files
 _prompts-todo.md
+# Generated legacy import artifacts (contain customer PII; regenerate with make etl-gigs)
+db/seeds/legacy_gigs*.sql
+db/seeds/legacy_gigs*.txt
 *test.yaml
 composer-setup.php
 *.code-workspace

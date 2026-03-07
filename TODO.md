@@ -136,6 +136,7 @@ good `[copilot]` candidates when clearly specified.
 - [ ] **Move necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
 - [ ] **Retain complete price calculation logic in gig entities** — This needs a slight scema change (a few new INT columns on `gigs`) `[copilot]`
 - [ ] **Refactor dynamic pricing flags to radio** — These are either-or in the sense that Tier 2 can't be activated without Tier 1; therefore we should have EITHER Tier 1 OR (Tier 1 AND Tier 2) `[copilot]`
+- [ ] **Obfuscate dev customer records** — Currently, `db/seeds/dev.sql` contains real customer data extracted from old data stores. This (along with other dumps containing real data) needs to either be obfuscated (name changes will suffice) or deleted from VCS `[copilot]`
 - [ ] _(add items here)_
 
 ---

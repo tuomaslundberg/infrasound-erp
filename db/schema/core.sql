@@ -112,8 +112,25 @@ CREATE TABLE IF NOT EXISTS gigs (
                                 'cancelled',    -- confirmed but subsequently cancelled
                                 'declined'      -- we were unavailable or declined
                             ) NOT NULL DEFAULT 'inquiry',
-    -- Sales channel through which the inquiry arrived
-    channel                 ENUM('mail', 'buukkaa_bandi') NOT NULL DEFAULT 'mail',
+    -- Sales channel through which the inquiry arrived.
+    -- buukkaa_bandi has a distinct operational flow (own booking system,
+    -- commission invoicing, customer email not exposed pre-booking).
+    -- All other channels route through the shared inbox but are tracked
+    -- individually for analytics.  See migration 001 for ALTER TABLE statement.
+    channel                 ENUM(
+                                'mail',            -- direct email / unidentified source
+                                'buukkaa_bandi',   -- buukkaa-bandi.fi (own system)
+                                'saturday_band',   -- saturday.band platform
+                                'venuu',           -- venuu.fi
+                                'haamusiikki',     -- haamusiikki.com
+                                'voodoolive',      -- voodoolive.fi
+                                'ohjelmanaiset',   -- ohjelmanaiset.fi
+                                'palkkaamuusikko', -- palkkaamuusikko.fi
+                                'facebook',        -- facebook.com
+                                'whatsapp',        -- WhatsApp (web.whatsapp.com)
+                                'phone',           -- inbound phone call
+                                'other'            -- catch-all
+                            ) NOT NULL DEFAULT 'mail',
     -- Customer category — determines which mail template family is used
     customer_type           ENUM('wedding', 'company', 'other') NOT NULL DEFAULT 'wedding',
     -- Human-readable order summary, e.g. "3 x 45 min + ennakkoroudaus"

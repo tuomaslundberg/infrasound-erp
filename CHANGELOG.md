@@ -8,6 +8,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `cli/etl/extract_gigs.py` — idempotent ETL script that reads all
+  `old-files/info/gigs-*.xlsx` and `old-files/info/archive/gigs-*.xlsx` files
+  plus `old-files/gig-invoicing.xlsx`, normalises dates, channels, statuses,
+  and customer/contact names, fuzzy-merges the two sources (gig-invoicing
+  records within ±3 days and ≥ 0.75 name similarity matched to gigs-YYYY
+  records; fees propagated to matched rows; unmatched rows imported as
+  additional `delivered` gigs), and writes `db/seeds/legacy_gigs.sql`
+  (IDs 1–9999 reserved for legacy data, AUTO_INCREMENT reset to 10000) and
+  `db/seeds/legacy_gigs_dup_candidates.txt`.
+  Flags: `--dry-run` (SQL to stdout), `--stats` (counts only).
+- `db/migrations/001_expand_channel_enum.sql` — ALTER TABLE that expands
+  `gigs.channel` from `mail | buukkaa_bandi` to a 12-value ENUM covering
+  all booking platforms encountered in the legacy data.
+- `db/seeds/legacy_gigs.sql` — generated output of `extract_gigs.py`;
+  338 gigs, 324 customers, 332 contacts, 99 venues. Not committed to git
+  (gitignored alongside old-files); regenerate with `make etl-gigs`.
+- `Makefile` targets: `etl-gigs`; `migrate-dev` / `migrate` (dev/prod, `FILE=`
+  parameter); `import-legacy-gigs` / `import-legacy-gigs-prod` (apply migration
+  001 then load seed; full workflow documented in target comments).
+- `.gitignore` — `db/seeds/legacy_gigs*.sql` and `db/seeds/legacy_gigs*.txt`
+  (contain customer PII; regenerate with `make etl-gigs`).
+
+### Changed
+- `db/schema/core.sql` — `gigs.channel` ENUM updated to match migration 001;
+  inline comments document the channel taxonomy and buukkaa_bandi distinction.
+- `cli/etl/extract_gigs.py` — `_map_status` fallback changed from `'inquiry'`
+  to `'quoted'`: legacy records were never written down before a quote was sent,
+  so `inquiry` is not a valid state for any historical row. `inquiry` remains
+  in the ENUM for the future automated intake pipeline.
+
+### Added (Phase 1)
 - `TODO.md` — phased task list covering dev infrastructure through accounting;
   items marked `[copilot]` are suitable for GitHub Copilot Coding Agent delegation
 - `db/seeds/dev.sql` — realistic dev fixture data (5 gigs from 2026 season with
