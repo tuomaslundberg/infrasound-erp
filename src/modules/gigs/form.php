@@ -132,12 +132,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE gigs SET gig_date = ?, status = ?, channel = ?, customer_type = ?,
                                  order_description = ?, base_price_cents = ?, quoted_price_cents = ?,
                                  car1_distance_km = ?, car2_distance_km = ?,
-                                 other_travel_costs_cents = ?, notes = ?
+                                 other_travel_costs_cents = ?,
+                                 pricing_tier1 = ?, pricing_tier2 = ?,
+                                 qty_ennakkoroudaus = ?, qty_song_requests_extra = ?,
+                                 qty_extra_performances = ?, qty_background_music_h = ?,
+                                 qty_live_album = ?, discount_cents = ?,
+                                 notes = ?
                  WHERE id = ?'
             )->execute([
                 $gigDate, $status, $channel, $customerType, $orderDesc,
                 $basePriceCents, $quotedPriceCents,
                 $car1Km, $car2Km, (int)round($otherTravelEur * 100),
+                $tier1 ? 1 : 0, $tier2 ? 1 : 0,
+                $ennakkoroudaus, $songRequestsExtra, $extraPerformances,
+                $backgroundMusicH, $liveAlbum, (int)round($discountEur * 100),
                 $notes, $gigId,
             ]);
 
@@ -163,12 +171,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "INSERT INTO gigs
                    (customer_id, contact_id, venue_id, gig_date, status, channel, customer_type,
                     order_description, base_price_cents, quoted_price_cents,
-                    car1_distance_km, car2_distance_km, other_travel_costs_cents, notes)
-                 VALUES (?, ?, ?, ?, 'inquiry', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    car1_distance_km, car2_distance_km, other_travel_costs_cents,
+                    pricing_tier1, pricing_tier2,
+                    qty_ennakkoroudaus, qty_song_requests_extra, qty_extra_performances,
+                    qty_background_music_h, qty_live_album, discount_cents,
+                    notes)
+                 VALUES (?, ?, ?, ?, 'inquiry', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )->execute([
                 $customerId, $contactId, $venueId, $gigDate, $channel, $customerType,
                 $orderDesc, $basePriceCents, $quotedPriceCents,
                 $car1Km, $car2Km, (int)round($otherTravelEur * 100),
+                $tier1 ? 1 : 0, $tier2 ? 1 : 0,
+                $ennakkoroudaus, $songRequestsExtra, $extraPerformances,
+                $backgroundMusicH, $liveAlbum, (int)round($discountEur * 100),
                 $notes,
             ]);
             $gigId = (int)$pdo->lastInsertId();
@@ -194,6 +209,9 @@ if ($isEdit) {
         "SELECT g.gig_date, g.status, g.channel, g.customer_type, g.order_description,
                 g.car1_distance_km, g.car2_distance_km, g.other_travel_costs_cents,
                 g.quoted_price_cents, g.notes,
+                g.pricing_tier1, g.pricing_tier2,
+                g.qty_ennakkoroudaus, g.qty_song_requests_extra, g.qty_extra_performances,
+                g.qty_background_music_h, g.qty_live_album, g.discount_cents,
                 c.name  AS customer_name,
                 co.first_name AS contact_first_name, co.last_name AS contact_last_name,
                 co.email AS contact_email, co.phone AS contact_phone,
@@ -240,6 +258,14 @@ if ($isEdit) {
         'venue_city'           => $row['venue_city'] ?? '',
         'venue_postal'         => $row['venue_postal'] ?? '',
         'dist_from_turku'      => $row['dist_from_turku'] ?? '0',
+        'tier1'                => $row['pricing_tier1'] ? '1' : '',
+        'tier2'                => $row['pricing_tier2'] ? '1' : '',
+        'ennakkoroudaus'       => (string)($row['qty_ennakkoroudaus'] ?? 0),
+        'song_requests_extra'  => (string)($row['qty_song_requests_extra'] ?? 0),
+        'extra_performances'   => (string)($row['qty_extra_performances'] ?? 0),
+        'background_music_h'   => (string)($row['qty_background_music_h'] ?? 0),
+        'live_album'           => (string)($row['qty_live_album'] ?? 0),
+        'discount_eur'         => number_format(($row['discount_cents'] ?? 0) / 100, 2, '.', ''),
     ];
 }
 
@@ -247,11 +273,16 @@ if ($isEdit) {
 $v = fn(string $key, mixed $fallback = '') =>
     htmlspecialchars((string)($_POST[$key] ?? $db[$key] ?? $fallback));
 
+// $chk() for checkboxes: POST = isset($_POST[key]); GET = truthy DB value
+$chk = fn(string $key) =>
+    ($_SERVER['REQUEST_METHOD'] === 'POST' ? isset($_POST[$key]) : (bool)($db[$key] ?? false))
+    ? 'checked' : '';
+
 render_form:
 $pageTitle  = $isEdit ? 'Edit — ' . ($db['customer_name'] ?? 'gig') : 'New inquiry';
 $formAction = $isEdit ? '/gigs/' . $gigId . '/edit' : '/gigs/new';
 
-render_layout($pageTitle, function () use ($errors, $v, $isEdit, $gigId, $formAction, $pageTitle) {
+render_layout($pageTitle, function () use ($errors, $v, $chk, $isEdit, $gigId, $formAction, $pageTitle) {
 ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0"><?= htmlspecialchars($pageTitle) ?></h2>
@@ -409,14 +440,14 @@ render_layout($pageTitle, function () use ($errors, $v, $isEdit, $gigId, $formAc
           <div class="card-body">
             <div class="form-check mb-2">
               <input class="form-check-input" type="checkbox" name="tier1" id="tier1"
-                     <?= isset($_POST['tier1']) ? 'checked' : '' ?>>
+                     <?= $chk('tier1') ?>>
               <label class="form-check-label" for="tier1">
                 Tier 1 — on-season Saturday (May–Sep) <span class="text-muted">+50 € net</span>
               </label>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="checkbox" name="tier2" id="tier2"
-                     <?= isset($_POST['tier2']) ? 'checked' : '' ?>>
+                     <?= $chk('tier2') ?>>
               <label class="form-check-label" for="tier2">
                 Tier 2 — high-demand date <span class="text-muted">+75 € net</span>
               </label>
