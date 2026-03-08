@@ -12,12 +12,12 @@ Items marked `[copilot]` are good candidates for GitHub Copilot Coding Agent
 
 Unblocks all local development and testing.
 
-- [ ] **Dev environment config** — add `.env.dev` pointing to `fi_infrasound_dev`,
+- [x] **Dev environment config** — add `.env.dev` pointing to `fi_infrasound_dev`,
       add Makefile `make dev` / `make up` targets so you can switch between
       dev seed data and prod data without touching the codebase or branch
-- [ ] **Seed dev DB** — run `db/seeds/dev.sql` against `fi_infrasound_dev`
+- [x] **Seed dev DB** — run `db/seeds/dev.sql` against `fi_infrasound_dev`
       (5 gigs from 2026 season, venues, customers, contacts, song requests)
-- [ ] **AGENTS.md update** — add `db/seeds/` to repo tree in §4
+- [x] **AGENTS.md update** — add `db/seeds/` to repo tree in §4
 
 ---
 
@@ -26,23 +26,23 @@ Unblocks all local development and testing.
 Goal: replace the current CLI + copy-paste workflow with a web UI that writes
 to the DB and outputs the filled quote email.
 
-- [ ] **PHP router** — single-entry `src/index.php` dispatcher; route table maps
+- [x] **PHP router** — single-entry `src/index.php` dispatcher; route table maps
       URL patterns to controller files; supports both authenticated and public
       (unauthenticated) routes from day one so the door stays open for a future
       public inquiry form
-- [ ] **Shared layout** — Bootstrap 5 shell (header, nav, footer); no Vue yet,
+- [x] **Shared layout** — Bootstrap 5 shell (header, nav, footer); no Vue yet,
       plain PHP templates
-- [ ] **Inquiry form** — web form mirroring `cli/inquiry-template.yaml` fields;
+- [x] **Inquiry form** — web form mirroring `cli/inquiry-template.yaml` fields;
       on submit: upsert customer + contact + venue + gig rows; redirect to
       inquiry detail
-- [ ] **Inquiry list page** — paginated table of gigs (date, customer, status,
+- [x] **Inquiry list page** — paginated table of gigs (date, customer, status,
       quoted price); links to detail
-- [ ] **Inquiry detail / edit page** — read/edit all gig fields; delete = soft
+- [x] **Inquiry detail / edit page** — read/edit all gig fields; delete = soft
       delete (`deleted_at`)
-- [ ] **Quote calculation on save** — call PriceCalculator logic (ported from
+- [x] **Quote calculation on save** — call PriceCalculator logic (ported from
       `cli/lib/PriceCalculator.php`) on every inquiry save; store result in
       `gigs.base_price_cents`; allow override via `quoted_price_cents`
-- [ ] **Quote email preview** — render the filled Finnish template (port
+- [x] **Quote email preview** — render the filled Finnish template (port
       TemplateRenderer) and display it in-browser; include copy-to-clipboard
       button for ProtonMail paste workflow
 
@@ -53,12 +53,12 @@ to the DB and outputs the filled quote email.
 Goal: switch from dev seed data to actual production data so the ERP replaces
 the old Excel/text workflows.
 
-- [ ] **Import extracted data** — once Cowork extraction is ready, write a
+- [x] **Import extracted data** — once Cowork extraction is ready, write a
       migration script (`cli/import_legacy.php` or SQL) to load existing
       customers, venues, and gigs into the DB; preserve original quoted prices
-- [ ] **Validate migrated data** — spot-check 5–10 rows against source files;
+- [x] **Validate migrated data** — spot-check 5–10 rows against source files;
       confirm foreign key integrity
-- [ ] **Switch to prod env** — point `.env` at `fi_infrasound`; run against
+- [x] **Switch to prod env** — point `.env` at `fi_infrasound`; run against
       real data; confirm inquiry workflow end-to-end
 
 At this point the ERP should be usable in place of old workflows.
@@ -67,10 +67,10 @@ At this point the ERP should be usable in place of old workflows.
 
 ## Phase 3 — Auth and automation
 
-- [ ] **Auth skeleton** — session-based login; `users` table with role ENUM:
+- [x] **Auth skeleton** — session-based login; `users` table with role ENUM:
       `developer` / `admin` / `owner` / `musician` / `guest`; login/logout flow;
       route guard middleware checks minimum required role per route
-- [ ] **Automate price calc trigger** — price recalculation fires automatically
+- [x] **Automate price calc trigger** — price recalculation fires automatically
       on any change to distance, tier flags, channel, or extras fields (no
       manual recalc button needed)
 - [ ] **Scope agent service** — when automation complexity warrants it, draft
@@ -136,7 +136,7 @@ good `[copilot]` candidates when clearly specified.
 - [ ] **Move necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
 - [ ] **Retain complete price calculation logic in gig entities** — This needs a slight scema change (a few new INT columns on `gigs`) `[copilot]`
 - [ ] **Refactor dynamic pricing flags to radio** — These are either-or in the sense that Tier 2 can't be activated without Tier 1; therefore we should have EITHER Tier 1 OR (Tier 1 AND Tier 2) `[copilot]`
-- [ ] **Obfuscate dev customer records** — Currently, `db/seeds/dev.sql` contains real customer data extracted from old data stores. This (along with other dumps containing real data) needs to either be obfuscated (name changes will suffice) or deleted from VCS `[copilot]`
+- [x] **Obfuscate dev customer records** — Currently, `db/seeds/dev.sql` contains real customer data extracted from old data stores. This (along with other dumps containing real data) needs to either be obfuscated (name changes will suffice) or deleted from VCS `[copilot]`
 - [ ] **Add notes field to gig view** — Freeform text area to add soft data in (e.g. old statuses such as "Asiakas päätynyt toiseen bändiin" or special requests like "Toivottu myös esiintymistä vihkitilaisuudessa"). `[copilot]`
 - [ ] **Bug: gig invoicing data not correctly merged with gig table data** — Multiple duplicate records in the gig table that pertain to the same gig, one of which is fetched from `gigs-YYYY.xlsx` and the other from `gig-invoicing.xlsx` (stating "no matching gigs-YYYY record"). Proposed first step for fix: search cli/etl/extract_gigs.py for logic errors in the merge step.
 - [ ] **Merge quote/customer folder history data** — Combine data found in quote text files to DB (requires some specification; mainly locating the text files)
