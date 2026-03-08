@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- `db/migrations/3_gig_pricing_inputs.sql` — ALTER TABLE adds 8 NOT NULL pricing-input
+  columns (default 0) to `gigs`: `pricing_tier1`, `pricing_tier2`, `qty_ennakkoroudaus`,
+  `qty_song_requests_extra`, `qty_extra_performances`, `qty_background_music_h`,
+  `qty_live_album`, `discount_cents`. Persists the granular PriceCalculator inputs
+  so the edit form pre-populates them instead of resetting to zero.
+- `db/schema/core.sql` — same 8 columns added to the `gigs` CREATE TABLE reference block.
+- `src/modules/gigs/form.php` — SELECT query, `$db[]` mapping, INSERT, and UPDATE
+  statements updated to read/write the 8 new pricing-input columns.
+
 ### Added
 - `cli/etl/extract_gigs.py` — idempotent ETL script that reads all
   `old-files/info/gigs-*.xlsx` and `old-files/info/archive/gigs-*.xlsx` files

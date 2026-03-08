@@ -141,6 +141,15 @@ CREATE TABLE IF NOT EXISTS gigs (
     car1_distance_km        DECIMAL(7,1)             DEFAULT NULL,
     car2_distance_km        DECIMAL(7,1)             DEFAULT 0.0,
     other_travel_costs_cents INT                     DEFAULT 0,
+    -- Granular pricing inputs (see PriceCalculator; persisted so the edit form pre-populates)
+    pricing_tier1            TINYINT(1)              NOT NULL DEFAULT 0, -- on-season Saturday flag
+    pricing_tier2            TINYINT(1)              NOT NULL DEFAULT 0, -- high-demand date flag
+    qty_ennakkoroudaus        TINYINT UNSIGNED        NOT NULL DEFAULT 0,
+    qty_song_requests_extra   TINYINT UNSIGNED        NOT NULL DEFAULT 0,
+    qty_extra_performances    TINYINT UNSIGNED        NOT NULL DEFAULT 0,
+    qty_background_music_h    TINYINT UNSIGNED        NOT NULL DEFAULT 0,
+    qty_live_album            TINYINT UNSIGNED        NOT NULL DEFAULT 0,
+    discount_cents            INT                     NOT NULL DEFAULT 0, -- gross discount in eurocents
     notes                   TEXT,
     created_at              DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at              DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
