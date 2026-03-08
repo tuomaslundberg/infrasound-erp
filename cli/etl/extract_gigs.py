@@ -20,9 +20,10 @@ Re-running the script as Excel files are updated is safe and intentional.
 
 Usage
 -----
-  python cli/etl/extract_gigs.py           # write files
-  python cli/etl/extract_gigs.py --dry-run # print SQL to stdout
-  python cli/etl/extract_gigs.py --stats   # print entity counts only
+  python cli/etl/extract_gigs.py                    # write files
+  python cli/etl/extract_gigs.py --dry-run          # print SQL to stdout
+  python cli/etl/extract_gigs.py --stats            # print entity counts only
+  python cli/etl/extract_gigs.py --debug-unmatched  # diagnose merge failures
 
 Prerequisites
 -------------
@@ -107,6 +108,26 @@ _STATUS_PATTERNS = [
 _COMPANY_TOKENS = frozenset({
     "oy", "ab", "llc", "ry", "yhdistys", "oyj", "ky",
     "osuuskunta", "solutions", "enterprises", "group",
+})
+
+# Finnish event-type suffixes common in gig-invoicing "KEIKKA" descriptions.
+# These appear in invoicing rows (e.g. "Lindqvist häät", "Yritys X pikkujoulut")
+# but are absent from the booking tracker's customer/company name, so stripping
+# them before similarity comparison prevents false non-matches.
+# Stored as normalised (ASCII-lowercased) forms.
+_INVOICE_EVENT_TOKENS = frozenset({
+    "haat",              # häät — wedding
+    "pikkujoulut",       # company christmas party
+    "pikkujoulu",
+    "synttarit",         # synttärit — birthday party
+    "syntymapaivapaiva", # syntymäpäivä (rarely appears as suffix)
+    "juhlat",            # party / celebration
+    "juhla",
+    "tilaisuus",         # event / occasion
+    "keikka",            # gig (meta)
+    "gaala",             # gala
+    "illallinen",        # dinner
+    "kokous",            # meeting
 })
 
 # Gig-invoicing column indices (0-based, data rows start at row 3 in Excel)
@@ -251,6 +272,18 @@ def _normalise_name(name: str) -> str:
     return " ".join(n.split())
 
 
+def _normalise_invoice_name(name: str) -> str:
+    """Like _normalise_name, but also strips Finnish event-type suffixes.
+
+    gig-invoicing "KEIKKA" descriptions often include event-type words
+    (e.g. "Lindqvist häät", "Yritys X pikkujoulut") that are absent from
+    the booking tracker's customer field, causing false non-matches.
+    """
+    n = _normalise_name(name)
+    tokens = [t for t in n.split() if t not in _INVOICE_EVENT_TOKENS]
+    return " ".join(tokens)
+
+
 def _infer_customer_type(name: str) -> str:
     """'company' if the name contains a recognisable legal entity token, else 'person'."""
     lower = name.lower()
@@ -371,21 +404,33 @@ def _load_invoicing_xlsx(path: str) -> list[RawRecord]:
 # Deduplication
 # ---------------------------------------------------------------------------
 
+def _match_score(inv: RawRecord, gig: RawRecord) -> tuple[int, float]:
+    """Return (date_diff_days, name_similarity) for an invoicing/tracker pair.
+
+    Uses _normalise_invoice_name for the invoicing side so Finnish event-type
+    suffixes (häät, pikkujoulut, …) do not penalise the similarity score.
+    """
+    if inv.gig_date is None or gig.gig_date is None:
+        return 9999, 0.0
+    date_diff = abs((inv.gig_date - gig.gig_date).days)
+    sim = SequenceMatcher(
+        None,
+        _normalise_invoice_name(inv.raw_customer),
+        _normalise_name(gig.raw_customer),
+    ).ratio()
+    return date_diff, sim
+
+
 def _is_gig_match(a: RawRecord, b: RawRecord) -> bool:
     """True if two records are likely the same real-world gig.
 
     Criteria: date within ±3 days AND normalised name similarity ≥ 0.75.
     The ±3-day window accounts for occasional date discrepancies between the
     invoicing spreadsheet and the booking tracker.
+    a is assumed to be the invoicing record and b the tracker record, so
+    _normalise_invoice_name is applied to a (strips Finnish event suffixes).
     """
-    if a.gig_date is None or b.gig_date is None:
-        return False
-    date_diff = abs((a.gig_date - b.gig_date).days)
-    sim = SequenceMatcher(
-        None,
-        _normalise_name(a.raw_customer),
-        _normalise_name(b.raw_customer),
-    ).ratio()
+    date_diff, sim = _match_score(a, b)
     return date_diff <= 3 and sim >= 0.75
 
 
@@ -441,6 +486,9 @@ def main() -> int:
                         help="Print generated SQL to stdout instead of writing files.")
     parser.add_argument("--stats", action="store_true",
                         help="Print entity counts and exit without writing anything.")
+    parser.add_argument("--debug-unmatched", action="store_true",
+                        help="For each unmatched invoicing record, print the closest "
+                             "tracker candidate with its date diff and similarity score.")
     args = parser.parse_args()
 
     # ── 1. Load sources ──────────────────────────────────────────────────────
@@ -483,6 +531,32 @@ def main() -> int:
     print(f"\n  gig-invoicing: {n_matched} matched to gigs-YYYY, "
           f"{len(unmatched_invoicing)} unmatched → added as extra delivered gigs",
           file=sys.stderr)
+
+    if args.debug_unmatched and unmatched_invoicing:
+        print("\n  ── Unmatched invoicing records (closest tracker candidate shown) ──",
+              file=sys.stderr)
+        for inv in unmatched_invoicing:
+            # Find tracker record with the best combined score (closest date + highest sim)
+            best_gig: Optional[RawRecord] = None
+            best_date_diff = 9999
+            best_sim = 0.0
+            for g in gigs_yyyy:
+                d, s = _match_score(inv, g)
+                if d < best_date_diff or (d == best_date_diff and s > best_sim):
+                    best_date_diff = d
+                    best_sim = s
+                    best_gig = g
+            if best_gig is not None:
+                passed = "MATCH" if best_date_diff <= 3 and best_sim >= 0.75 else "no match"
+                print(
+                    f"  INV  {inv.gig_date}  {inv.raw_customer!r}\n"
+                    f"  GIG  {best_gig.gig_date}  {best_gig.raw_customer!r}\n"
+                    f"       date_diff={best_date_diff}d  sim={best_sim:.3f}  [{passed}]\n",
+                    file=sys.stderr,
+                )
+            else:
+                print(f"  INV  {inv.gig_date}  {inv.raw_customer!r}  (no tracker records to compare)\n",
+                      file=sys.stderr)
 
     all_records = gigs_yyyy + unmatched_invoicing
 
