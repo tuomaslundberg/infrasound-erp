@@ -2,35 +2,39 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/auth.php';
 
 // ---------------------------------------------------------------------------
 // Route table
-// Each entry: [pattern, controller_file, is_public]
-// pattern  — regex matched against the URI path (without query string)
-// is_public — if false, the route requires an authenticated session (Phase 3)
+// Each entry: [pattern, controller_file, min_role]
+// min_role — null = public; otherwise the minimum role required (see config/auth.php)
 // ---------------------------------------------------------------------------
 $routes = [
-    ['#^/$#',                           'modules/gigs/list.php',          false],
-    ['#^/gigs$#',                       'modules/gigs/list.php',          false],
-    ['#^/gigs/new$#',                   'modules/gigs/form.php',          false],
-    ['#^/gigs/(\d+)$#',                 'modules/gigs/detail.php',        false],
-    ['#^/gigs/(\d+)/edit$#',            'modules/gigs/form.php',          false],
-    ['#^/gigs/(\d+)/quote$#',           'modules/gigs/quote.php',         false],
+    // Public
+    ['#^/login$#',                      'modules/auth/login.php',         null],
+    ['#^/logout$#',                     'modules/auth/logout.php',        null],
+
+    // Protected — minimum role: owner
+    ['#^/$#',                           'modules/gigs/list.php',          'owner'],
+    ['#^/gigs$#',                       'modules/gigs/list.php',          'owner'],
+    ['#^/gigs/new$#',                   'modules/gigs/form.php',          'owner'],
+    ['#^/gigs/(\d+)$#',                 'modules/gigs/detail.php',        'owner'],
+    ['#^/gigs/(\d+)/edit$#',            'modules/gigs/form.php',          'owner'],
+    ['#^/gigs/(\d+)/quote$#',           'modules/gigs/quote.php',         'owner'],
 ];
 
 // ---------------------------------------------------------------------------
 // Dispatch
 // ---------------------------------------------------------------------------
-$uri    = strtok($_SERVER['REQUEST_URI'], '?') ?: '/';
-$method = $_SERVER['REQUEST_METHOD'];
+$uri = strtok($_SERVER['REQUEST_URI'], '?') ?: '/';
 
-foreach ($routes as [$pattern, $controller, $isPublic]) {
+foreach ($routes as [$pattern, $controller, $minRole]) {
     if (preg_match($pattern, $uri, $matches)) {
-        // Pass any capture groups (e.g. gig ID) to the controller
         $routeParams = array_slice($matches, 1);
 
-        // Auth guard — placeholder until Phase 3 auth is built
-        // When session auth is added, enforce $isPublic here.
+        if ($minRole !== null) {
+            auth_require($minRole);
+        }
 
         $controllerPath = __DIR__ . '/' . $controller;
         if (!file_exists($controllerPath)) {

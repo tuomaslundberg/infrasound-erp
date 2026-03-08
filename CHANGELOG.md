@@ -18,6 +18,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   statements updated to read/write the 8 new pricing-input columns.
 
 ### Added
+- `db/migrations/002_add_users_table.sql` — CREATE TABLE users; role ENUM
+  (`developer`/`admin`/`owner`/`musician`/`guest`); bcrypt password_hash;
+  unique username; soft delete
+- `config/auth.php` — `auth_start()`, `auth_user()`, `auth_has_role()`,
+  `auth_require()`; role hierarchy in ROLE_ORDER constant
+- `src/modules/auth/login.php` — login form + POST handler; session_regenerate_id
+  on success; `?next=` redirect param
+- `src/modules/auth/logout.php` — session destroy + redirect to /login
+- `db/schema/core.sql` — users table added
+
+### Changed
+- `src/index.php` — route table switches from `is_public` bool to `min_role`
+  (null = public); auth_require() enforced in dispatcher; /login and /logout
+  added as public routes
+- `src/templates/layout.php` — navbar shows username + role badge + Sign out
+  when logged in; nav links hidden on login page
+
+### Added
 - `cli/etl/extract_gigs.py` — idempotent ETL script that reads all
   `old-files/info/gigs-*.xlsx` and `old-files/info/archive/gigs-*.xlsx` files
   plus `old-files/gig-invoicing.xlsx`, normalises dates, channels, statuses,
