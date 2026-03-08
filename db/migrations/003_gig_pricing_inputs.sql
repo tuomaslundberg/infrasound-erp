@@ -1,4 +1,4 @@
--- Migration 002: store granular pricing inputs on gigs table
+-- Migration 003: store granular pricing inputs on gigs table
 -- Run once against both dev and prod databases.
 --
 -- Persists the tier flags and additional-service quantities that

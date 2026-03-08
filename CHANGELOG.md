@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
-- `db/migrations/002_gig_pricing_inputs.sql` — ALTER TABLE adds 8 NOT NULL pricing-input
+- `db/migrations/3_gig_pricing_inputs.sql` — ALTER TABLE adds 8 NOT NULL pricing-input
   columns (default 0) to `gigs`: `pricing_tier1`, `pricing_tier2`, `qty_ennakkoroudaus`,
   `qty_song_requests_extra`, `qty_extra_performances`, `qty_background_music_h`,
   `qty_live_album`, `discount_cents`. Persists the granular PriceCalculator inputs
