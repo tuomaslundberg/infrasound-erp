@@ -210,7 +210,8 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
                   <td><?= $p['confirmed_at'] ? htmlspecialchars($p['confirmed_at']) : '—' ?></td>
                   <td>
                     <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/personnel/<?= (int)$p['user_id'] ?>/remove"
-                          onsubmit="return confirm('Remove ' + <?= json_encode($p['username']) ?> + ' from lineup?')">
+                          class="remove-personnel-form"
+                          data-username="<?= htmlspecialchars($p['username']) ?>">
                       <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
                     </form>
                   </td>
@@ -266,5 +267,14 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
   <div class="mt-3">
     <a href="/gigs" class="btn btn-link btn-sm px-0">← Back to gig list</a>
   </div>
+
+<script>
+document.querySelectorAll('.remove-personnel-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+        var name = form.getAttribute('data-username');
+        if (!confirm('Remove ' + name + ' from lineup?')) e.preventDefault();
+    });
+});
+</script>
 <?php
 });
