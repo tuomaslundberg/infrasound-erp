@@ -6,7 +6,10 @@ declare(strict_types=1);
  * Fills in a sales mail template with inquiry-specific values.
  *
  * Template files live at:
- *   old-files/sales/{lang}/{channel}/{customer_type}/{template_type}.txt
+ *   src/assets/mail-templates/{lang}/{channel_dir}/{customer_type_dir}/{template_type}.txt
+ *
+ * channel_dir:       buukkaa_bandi → buukkaa-bandi  |  everything else → direct
+ * customer_type_dir: wedding → weddings  |  company → companies  |  other → other
  *
  * Substitutions applied:
  *   [ASIAKAS]    → greeting name (first name of contact, or customer name for companies)
@@ -18,8 +21,8 @@ class TemplateRenderer
 
     public function __construct()
     {
-        // cli/lib/ → project root → old-files/sales/
-        $this->salesRoot = dirname(__DIR__, 2) . '/old-files/sales';
+        // cli/lib/ → project root → src/assets/mail-templates/
+        $this->salesRoot = dirname(__DIR__, 2) . '/src/assets/mail-templates';
     }
 
     /**
@@ -120,7 +123,7 @@ class TemplateRenderer
     {
         return match ($channel) {
             'buukkaa_bandi' => 'buukkaa-bandi',
-            default         => $channel,   // 'mail' → 'mail'
+            default         => 'direct',   // all other channels use the direct templates
         };
     }
 

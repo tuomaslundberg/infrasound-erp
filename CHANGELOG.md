@@ -7,6 +7,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- `cli/lib/TemplateRenderer.php` — template root updated from `old-files/sales/`
+  to `src/assets/mail-templates/` following the template migration to VCS.
+  `mapChannel()` default changed from pass-through to `'direct'` so all
+  non-buukkaa-bandi channels (saturday_band, venuu, mail, …) resolve to the
+  `direct/` directory instead of their raw ENUM name.
+
 ### Fixed
 - `src/modules/gigs/form.php` — `goto render_form` inside the POST error paths
   jumped past the `$v`/`$chk` closure definitions, causing "Undefined variable"
