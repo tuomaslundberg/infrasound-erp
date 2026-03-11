@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- `src/modules/gigs/form.php` — `goto render_form` inside the POST error paths
+  jumped past the `$v`/`$chk` closure definitions, causing "Undefined variable"
+  warnings and a "null is not callable" fatal error on form re-render. Fixed by
+  moving both closures before the POST block and capturing `$db` by reference
+  (`use (&$db)`) so the GET edit block can still populate it afterwards.
+- `src/modules/gigs/form.php` — channel validation still listed only
+  `mail|buukkaa_bandi`; updated to match the full 12-value ENUM from migration 001.
+
+### Fixed (previous)
 - `cli/etl/extract_gigs.py` — gig-invoicing merge was failing to match records
   in two cases: (1) invoicing "KEIKKA" column contained Finnish event-type
   suffixes ("Lindqvist häät", "Yritys X pikkujoulut") absent from the tracker;
