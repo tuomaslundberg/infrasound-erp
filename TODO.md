@@ -133,12 +133,12 @@ Small business logic tweaks and copy fixes. Add items here as they come up;
 good `[copilot]` candidates when clearly specified.
 
 - [ ] **Edit mail templates to handle Markdown links correctly** — currently e.g. "Spotify-linkki https://link.to.spotify"; should be "[Spotify-linkki](https://link.to.spotify)"  `[copilot]`
-- [ ] **Move necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
-- [ ] **Retain complete price calculation logic in gig entities** — This needs a slight scema change (a few new INT columns on `gigs`) `[copilot]`
+- [x] **Move necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
+- [x] **Retain complete price calculation logic in gig entities** — This needs a slight schema change (a few new INT columns on `gigs`) `[copilot]`
 - [ ] **Refactor dynamic pricing flags to radio** — These are either-or in the sense that Tier 2 can't be activated without Tier 1; therefore we should have EITHER Tier 1 OR (Tier 1 AND Tier 2) `[copilot]`
 - [x] **Obfuscate dev customer records** — Currently, `db/seeds/dev.sql` contains real customer data extracted from old data stores. This (along with other dumps containing real data) needs to either be obfuscated (name changes will suffice) or deleted from VCS `[copilot]`
 - [ ] **Add notes field to gig view** — Freeform text area to add soft data in (e.g. old statuses such as "Asiakas päätynyt toiseen bändiin" or special requests like "Toivottu myös esiintymistä vihkitilaisuudessa"). `[copilot]`
-- [ ] **Bug: gig invoicing data not correctly merged with gig table data** — Multiple duplicate records in the gig table that pertain to the same gig, one of which is fetched from `gigs-YYYY.xlsx` and the other from `gig-invoicing.xlsx` (stating "no matching gigs-YYYY record"). Proposed first step for fix: search cli/etl/extract_gigs.py for logic errors in the merge step.
+- [x] **Bug: gig invoicing data not correctly merged with gig table data** — Multiple duplicate records in the gig table that pertain to the same gig, one of which is fetched from `gigs-YYYY.xlsx` and the other from `gig-invoicing.xlsx` (stating "no matching gigs-YYYY record"). Proposed first step for fix: search cli/etl/extract_gigs.py for logic errors in the merge step.
 - [ ] **Merge quote/customer folder history data** — Combine data found in quote text files to DB (requires some specification; mainly locating the text files)
 - [ ] _(add items here)_
 
