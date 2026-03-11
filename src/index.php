@@ -21,7 +21,9 @@ $routes = [
     ['#^/gigs/(\d+)$#',                 'modules/gigs/detail.php',        'owner'],
     ['#^/gigs/(\d+)/edit$#',            'modules/gigs/form.php',          'owner'],
     ['#^/gigs/(\d+)/quote$#',           'modules/gigs/quote.php',         'owner'],
-    ['#^/gigs/(\d+)/transition$#',      'modules/gigs/transition.php',    'owner'],
+    ['#^/gigs/(\d+)/transition$#',               'modules/gigs/transition.php',        'owner'],
+    ['#^/gigs/(\d+)/personnel$#',               'modules/gigs/personnel_add.php',     'owner'],
+    ['#^/gigs/(\d+)/personnel/(\d+)/remove$#',  'modules/gigs/personnel_remove.php',  'owner'],
 ];
 
 // ---------------------------------------------------------------------------

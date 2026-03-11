@@ -7,6 +7,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `src/modules/gigs/personnel_add.php` — POST handler to assign a musician to
+  a gig (`gig_personnel` row); duplicate assignments rejected with a flash notice
+- `src/modules/gigs/personnel_remove.php` — POST handler to remove a musician
+  from a gig (hard delete of `gig_personnel` row)
+- `src/index.php` — routes `POST /gigs/{id}/personnel` and
+  `POST /gigs/{id}/personnel/{user_id}/remove` (both require `owner` role)
+- `src/modules/gigs/detail.php` — Personnel card: current lineup table with
+  Username / Role / Fee / Confirmed columns, inline add-musician form
+  (user select, role select, fee in €), Remove button per row, and flash
+  notices for add/remove/duplicate/error outcomes
+
 ### Fixed
 - `docker-compose.yml` — added volume mount for `src/assets/mail-templates` at
   `/var/www/src/assets/mail-templates` so `TemplateRenderer` can locate template
