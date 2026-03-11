@@ -15,6 +15,16 @@ $errors = [];
 // (POST values always win over DB values in the $v() helper below)
 $db = [];
 
+// Defined here (before any goto render_form) so they are always in scope.
+// $db is captured by reference so the GET edit block can populate it after.
+$v = function(string $key, mixed $fallback = '') use (&$db): string {
+    return htmlspecialchars((string)($_POST[$key] ?? $db[$key] ?? $fallback));
+};
+$chk = function(string $key) use (&$db): string {
+    return ($_SERVER['REQUEST_METHOD'] === 'POST' ? isset($_POST[$key]) : (bool)($db[$key] ?? false))
+        ? 'checked' : '';
+};
+
 // ---------------------------------------------------------------------------
 // POST handler — save, recalculate price, redirect
 // ---------------------------------------------------------------------------
@@ -57,7 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($contactLastName === '')  $errors[] = 'Contact last name is required.';
     if ($venueName === '')    $errors[] = 'Venue name is required.';
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $gigDate)) $errors[] = 'Gig date must be YYYY-MM-DD.';
-    if (!in_array($channel, ['mail', 'buukkaa_bandi'], true)) $errors[] = 'Invalid channel.';
+    $validChannels = ['mail','buukkaa_bandi','saturday_band','venuu','haamusiikki',
+                       'voodoolive','ohjelmanaiset','palkkaamuusikko','facebook','whatsapp','phone','other'];
+    if (!in_array($channel, $validChannels, true)) $errors[] = 'Invalid channel.';
     if (!in_array($customerType, ['wedding', 'company', 'other'], true)) $errors[] = 'Invalid customer type.';
     if (!in_array($status, $validStatuses, true)) $errors[] = 'Invalid status.';
 
@@ -268,15 +280,6 @@ if ($isEdit) {
         'discount_eur'         => number_format(($row['discount_cents'] ?? 0) / 100, 2, '.', ''),
     ];
 }
-
-// $v() prefers POST values (validation re-render) → DB values (edit) → fallback (new)
-$v = fn(string $key, mixed $fallback = '') =>
-    htmlspecialchars((string)($_POST[$key] ?? $db[$key] ?? $fallback));
-
-// $chk() for checkboxes: POST = isset($_POST[key]); GET = truthy DB value
-$chk = fn(string $key) =>
-    ($_SERVER['REQUEST_METHOD'] === 'POST' ? isset($_POST[$key]) : (bool)($db[$key] ?? false))
-    ? 'checked' : '';
 
 render_form:
 $pageTitle  = $isEdit ? 'Edit — ' . ($db['customer_name'] ?? 'gig') : 'New inquiry';

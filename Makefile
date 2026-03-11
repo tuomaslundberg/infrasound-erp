@@ -70,7 +70,7 @@ migrate-dev:
 # Run this whenever old-files/info/gigs-*.xlsx or gig-invoicing.xlsx is updated.
 # Output is gitignored (contains customer PII); commit the script, not the SQL.
 etl-gigs:
-	python cli/etl/extract_gigs.py
+	python cli/etl/extract_gigs.py $(FLAGS)
 
 # Apply migration 001 then load the generated legacy seed into the dev DB.
 # Full workflow: make etl-gigs → make dev → make import-legacy-gigs
