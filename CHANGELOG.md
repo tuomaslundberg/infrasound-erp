@@ -40,6 +40,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   musicians see a "My Gigs" link pointing to `/musician/gigs` instead
 
 ### Fixed
+- `src/assets/mail-templates/` — converted all bare `https://` URLs in sales
+  email templates to Markdown links `[text](url)`; affected files:
+  `fi/direct/{companies,weddings,other}/{quote,venue-familiar-quote,thank-you}.txt`
+  and
+  `fi/buukkaa-bandi/{companies,weddings,other}/{order-confirmation,venue-familiar-order-confirmation}.txt`
 - `docker-compose.yml` — added volume mount for `src/assets/mail-templates` at
   `/var/www/src/assets/mail-templates` so `TemplateRenderer` can locate template
   files inside the PHP container (path resolved by `dirname(__DIR__, 2)` from
