@@ -284,6 +284,16 @@ def _normalise_invoice_name(name: str) -> str:
     return " ".join(tokens)
 
 
+def _entity_name_only(name: str) -> str:
+    """Strip a parenthesised contact suffix from a tracker customer string.
+
+    gigs-YYYY ASIAKAS entries often follow the pattern "Company Oy (Maija Haapakoski)".
+    The invoicing KEIKKA field contains only the entity part.  Stripping the
+    parenthesised portion before similarity comparison prevents false non-matches.
+    """
+    return re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()
+
+
 def _infer_customer_type(name: str) -> str:
     """'company' if the name contains a recognisable legal entity token, else 'person'."""
     lower = name.lower()
@@ -416,7 +426,7 @@ def _match_score(inv: RawRecord, gig: RawRecord) -> tuple[int, float]:
     sim = SequenceMatcher(
         None,
         _normalise_invoice_name(inv.raw_customer),
-        _normalise_name(gig.raw_customer),
+        _normalise_name(_entity_name_only(gig.raw_customer)),
     ).ratio()
     return date_diff, sim
 

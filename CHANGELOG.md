@@ -9,13 +9,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - `cli/etl/extract_gigs.py` — gig-invoicing merge was failing to match records
-  where the invoicing "KEIKKA" column contained Finnish event-type suffixes
-  (e.g. "Lindqvist häät", "Yritys X pikkujoulut") that are absent from the
-  booking tracker's customer field. Added `_normalise_invoice_name()` which
-  strips these suffixes before similarity comparison; `_is_gig_match()` now
-  uses it for the invoicing side. Added `--debug-unmatched` flag that prints
-  each unmatched invoicing record alongside the closest tracker candidate with
-  date diff and similarity score.
+  in two cases: (1) invoicing "KEIKKA" column contained Finnish event-type
+  suffixes ("Lindqvist häät", "Yritys X pikkujoulut") absent from the tracker;
+  (2) tracker ASIAKAS field contained a parenthesised contact suffix
+  ("Company Oy (Maija Haapakoski)") absent from the invoicing record.
+  Fixed with `_normalise_invoice_name()` (strips event suffixes) and
+  `_entity_name_only()` (strips parenthesised contact before comparison).
+  Added `--debug-unmatched` flag.
 
 ### Changed
 - `db/migrations/3_gig_pricing_inputs.sql` — ALTER TABLE adds 8 NOT NULL pricing-input
