@@ -25,8 +25,24 @@ if (!$gig) {
 
 $transitions = gig_valid_transitions($gig['status']);
 
-render_layout($gig['customer_name'], function () use ($gig, $transitions) {
+// Flash notices via query string
+$notice = $_GET['notice'] ?? null;
+$error  = $_GET['error']  ?? null;
+
+render_layout($gig['customer_name'], function () use ($gig, $transitions, $notice, $error) {
 ?>
+  <?php if ($notice === 'notes_saved'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Notes saved.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'notes_too_long'): ?>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    Notes too long — maximum 10 000 characters.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php endif; ?>
+
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-2">
       <h2 class="mb-0"><?= htmlspecialchars($gig['customer_name']) ?></h2>
@@ -122,20 +138,53 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions) {
     </div>
     <?php endif; ?>
 
-    <?php if ($gig['notes']): ?>
     <div class="col-12">
       <div class="card">
-        <div class="card-header">Notes</div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          Notes
+          <a href="#" class="btn btn-link btn-sm py-0" id="notes-edit-toggle">Edit</a>
+        </div>
         <div class="card-body">
-          <p class="mb-0"><?= nl2br(htmlspecialchars($gig['notes'])) ?></p>
+          <div id="notes-display">
+            <?php if ($gig['notes']): ?>
+              <p class="mb-0"><?= nl2br(htmlspecialchars($gig['notes'])) ?></p>
+            <?php else: ?>
+              <p class="mb-0 text-muted">No notes yet.</p>
+            <?php endif; ?>
+          </div>
+          <form id="notes-form" method="post" action="/gigs/<?= (int)$gig['id'] ?>/notes" class="d-none">
+            <textarea name="notes" class="form-control mb-2" rows="4"><?= htmlspecialchars($gig['notes'] ?? '') ?></textarea>
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <a href="#" class="btn btn-link btn-sm" id="notes-cancel">Cancel</a>
+          </form>
         </div>
       </div>
     </div>
-    <?php endif; ?>
   </div>
 
   <div class="mt-3">
     <a href="/gigs" class="btn btn-link btn-sm px-0">← Back to gig list</a>
   </div>
+
+  <script>
+    (function () {
+      var toggle  = document.getElementById('notes-edit-toggle');
+      var cancel  = document.getElementById('notes-cancel');
+      var display = document.getElementById('notes-display');
+      var form    = document.getElementById('notes-form');
+
+      toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        display.classList.add('d-none');
+        form.classList.remove('d-none');
+      });
+
+      cancel.addEventListener('click', function (e) {
+        e.preventDefault();
+        form.classList.add('d-none');
+        display.classList.remove('d-none');
+      });
+    })();
+  </script>
 <?php
 });
