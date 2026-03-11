@@ -7,6 +7,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `config/gig_states.php` — gig status state machine: transition map,
+  button labels/styles, badge colours, `gig_valid_transitions()` and
+  `gig_can_transition()` helpers
+- `src/modules/gigs/transition.php` — POST handler for status transitions;
+  validates against the state machine before applying; rejects invalid
+  transitions with a redirect
+- `src/index.php` — route `/gigs/{id}/transition` (POST, owner)
+- `src/modules/gigs/detail.php` — status badge in page header; row of
+  transition action buttons for all valid next states from current status
+- `db/migrations/004_gig_personnel.sql` — CREATE TABLE gig_personnel:
+  assigns users to gigs with role ENUM, fee_cents, confirmed_at
+- `db/schema/core.sql` — gig_personnel table added
+
 ### Changed
 - `cli/lib/TemplateRenderer.php` — template root updated from `old-files/sales/`
   to `src/assets/mail-templates/` following the template migration to VCS.

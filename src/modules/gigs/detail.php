@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../templates/layout.php';
+require_once __DIR__ . '/../../../config/gig_states.php';
 
 $gigId = isset($routeParams[0]) ? (int)$routeParams[0] : 0;
 
@@ -22,15 +23,34 @@ if (!$gig) {
     exit;
 }
 
-render_layout($gig['customer_name'], function () use ($gig) {
+$transitions = gig_valid_transitions($gig['status']);
+
+render_layout($gig['customer_name'], function () use ($gig, $transitions) {
 ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0"><?= htmlspecialchars($gig['customer_name']) ?></h2>
+    <div class="d-flex align-items-center gap-2">
+      <h2 class="mb-0"><?= htmlspecialchars($gig['customer_name']) ?></h2>
+      <?php $badge = GIG_STATUS_BADGES[$gig['status']] ?? 'secondary'; ?>
+      <span class="badge bg-<?= $badge ?>"><?= htmlspecialchars($gig['status']) ?></span>
+    </div>
     <div class="d-flex gap-2">
       <a href="/gigs/<?= (int)$gig['id'] ?>/quote" class="btn btn-primary btn-sm">Quote email</a>
       <a href="/gigs/<?= (int)$gig['id'] ?>/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
     </div>
   </div>
+
+  <?php if ($transitions): ?>
+  <div class="d-flex gap-2 mb-3">
+    <?php foreach ($transitions as $next): ?>
+    <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/transition">
+      <input type="hidden" name="status" value="<?= htmlspecialchars($next) ?>">
+      <button type="submit" class="btn btn-sm btn-<?= GIG_TRANSITION_STYLES[$next] ?? 'outline-secondary' ?>">
+        <?= htmlspecialchars(GIG_TRANSITION_LABELS[$next] ?? $next) ?>
+      </button>
+    </form>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
 
   <div class="row g-3">
     <div class="col-md-6">
@@ -40,9 +60,6 @@ render_layout($gig['customer_name'], function () use ($gig) {
           <dl class="row mb-0">
             <dt class="col-sm-4">Date</dt>
             <dd class="col-sm-8"><?= htmlspecialchars($gig['gig_date']) ?></dd>
-
-            <dt class="col-sm-4">Status</dt>
-            <dd class="col-sm-8"><?= htmlspecialchars($gig['status']) ?></dd>
 
             <dt class="col-sm-4">Type</dt>
             <dd class="col-sm-8"><?= htmlspecialchars($gig['customer_type']) ?></dd>
