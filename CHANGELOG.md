@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `docker-compose.yml` — added volume mount for `src/assets/mail-templates` at
+  `/var/www/src/assets/mail-templates` so `TemplateRenderer` can locate template
+  files inside the PHP container (path resolved by `dirname(__DIR__, 2)` from
+  `cli/lib/`, which gives `/var/www/src/...` not `/var/www/html/...`)
+
 ### Added
 - `config/gig_states.php` — gig status state machine: transition map,
   button labels/styles, badge colours, `gig_valid_transitions()` and

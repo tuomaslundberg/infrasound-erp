@@ -5,6 +5,7 @@ services:
       - "8080:80"
     volumes:
       - ./src:/var/www/html
+      - ./src/assets/mail-templates:/var/www/src/assets/mail-templates
       - ./config:/var/www/config
       - ./cli:/var/www/cli
       - ./old-files:/var/www/old-files

@@ -81,15 +81,17 @@ At this point the ERP should be usable in place of old workflows.
 
 ## Phase 4 — Gig management
 
-- [ ] **Gig state machine** — UI controls for status transitions:
+- [x] **Gig state machine** — UI controls for status transitions:
       `inquiry → quoted → confirmed → delivered` and `→ cancelled / declined`;
-      guard invalid transitions
-- [ ] **Schema: `gig_personnel`** — assign band members to a gig;
+      guard invalid transitions (`config/gig_states.php`,
+      `src/modules/gigs/transition.php`, detail page updated)
+- [x] **Schema: `gig_personnel`** — assign band members to a gig;
       fields: `gig_id`, `user_id`, `role` (e.g. `vocalist`, `guitarist`),
-      `fee_cents`, `confirmed_at`  `[copilot]`
-- [ ] **Personnel assignment UI** — assign/remove musicians from a confirmed gig
+      `fee_cents`, `confirmed_at` (`db/migrations/004_gig_personnel.sql`)
+- [ ] **Personnel assignment UI** — assign/remove musicians from a gig;
+      show current lineup with role + fee on gig detail page  `[copilot]`
 - [ ] **Musician read-only gig view** — musicians see their upcoming gigs:
-      date, venue, set times, stage contact; requires musician auth role
+      date, venue, order description, stage contact; requires `musician` role  `[copilot]`
 - [ ] **Musician availability** *(future enhancement)* — availability
       reporting flows (tentative interest, sign-up, remove); deferred until
       core ERP is stable; depends on `gig_personnel` table
