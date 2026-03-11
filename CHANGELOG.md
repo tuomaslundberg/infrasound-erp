@@ -16,6 +16,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `src/modules/gigs/detail.php` — notes section always visible (shows
   "No notes yet." placeholder when empty); inline edit toggle reveals a
   textarea + Save / Cancel controls without a page reload (inline `<script>`)
+### Changed
+- `src/modules/gigs/form.php` — replaced two independent dynamic-pricing
+  checkboxes (tier1 / tier2) with a three-option radio group (`pricing_tier`:
+  `none` / `tier1` / `tier1_tier2`). Tier 2 is no longer independently
+  selectable. POST handler derives `$tier1`/`$tier2` booleans from the single
+  radio value; GET edit derives the radio value from the existing
+  `pricing_tier1`/`pricing_tier2` columns. `PriceCalculator` inputs and DB
+  schema unchanged.
+### Added
+- `src/modules/musician/gigs.php` — read-only list of upcoming gigs for the
+  logged-in musician; shows only gigs where the user has a `gig_personnel` row
+  and `gig_date >= CURDATE()`, ordered by date; columns: Date, Customer
+  (first name only for weddings, company name otherwise), Venue, Role, Status
+- `src/modules/musician/gig_detail.php` — read-only gig card for musicians;
+  shows date, venue (name/address/city), order description, stage contact
+  (name + phone), song requests (artist/title/first-dance flag), own role and
+  fee; pricing fields (quoted/base price, cost inputs) are intentionally absent;
+  enforces that the logged-in user is assigned to the gig (404 otherwise)
+- `src/index.php` — routes `GET /musician/gigs` and `GET /musician/gigs/{id}`
+  with minimum role `musician`
+- `src/templates/layout.php` — "Gigs" nav link restricted to `owner`+ role;
+  musicians see a "My Gigs" link pointing to `/musician/gigs` instead
 
 ### Fixed
 - `docker-compose.yml` — added volume mount for `src/assets/mail-templates` at
