@@ -25,8 +25,24 @@ if (!$gig) {
 
 $transitions = gig_valid_transitions($gig['status']);
 
-render_layout($gig['customer_name'], function () use ($gig, $transitions) {
+// Flash notices via query string
+$notice = $_GET['notice'] ?? null;
+$error  = $_GET['error']  ?? null;
+
+render_layout($gig['customer_name'], function () use ($gig, $transitions, $notice, $error) {
 ?>
+  <?php if ($notice === 'notes_saved'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Notes saved.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'notes_too_long'): ?>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    Notes too long — maximum 10 000 characters.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php endif; ?>
+
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-2">
       <h2 class="mb-0"><?= htmlspecialchars($gig['customer_name']) ?></h2>
