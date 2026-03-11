@@ -49,8 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $car1Km            = (float)($_POST['car1_km']    ?? 0);
     $car2Km            = (float)($_POST['car2_km']    ?? 0);
     $otherTravelEur    = (float)($_POST['other_travel_eur'] ?? 0);
-    $tier1             = isset($_POST['tier1']);
-    $tier2             = isset($_POST['tier2']);
+    $pricingTier       = $_POST['pricing_tier'] ?? 'none';
+    $tier1             = in_array($pricingTier, ['tier1', 'tier1_tier2'], true);
+    $tier2             = $pricingTier === 'tier1_tier2';
     $ennakkoroudaus    = (int)($_POST['ennakkoroudaus']       ?? 0);
     $songRequestsExtra = (int)($_POST['song_requests_extra']  ?? 0);
     $extraPerformances = (int)($_POST['extra_performances']   ?? 0);
@@ -270,8 +271,7 @@ if ($isEdit) {
         'venue_city'           => $row['venue_city'] ?? '',
         'venue_postal'         => $row['venue_postal'] ?? '',
         'dist_from_turku'      => $row['dist_from_turku'] ?? '0',
-        'tier1'                => $row['pricing_tier1'] ? '1' : '',
-        'tier2'                => $row['pricing_tier2'] ? '1' : '',
+        'pricing_tier'         => $row['pricing_tier2'] ? 'tier1_tier2' : ($row['pricing_tier1'] ? 'tier1' : 'none'),
         'ennakkoroudaus'       => (string)($row['qty_ennakkoroudaus'] ?? 0),
         'song_requests_extra'  => (string)($row['qty_song_requests_extra'] ?? 0),
         'extra_performances'   => (string)($row['qty_extra_performances'] ?? 0),
@@ -442,17 +442,24 @@ render_layout($pageTitle, function () use ($errors, $v, $chk, $isEdit, $gigId, $
           <div class="card-header">Dynamic pricing<?= $isEdit ? ' <small class="text-muted fw-normal">(re-enter to recalculate)</small>' : '' ?></div>
           <div class="card-body">
             <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" name="tier1" id="tier1"
-                     <?= $chk('tier1') ?>>
-              <label class="form-check-label" for="tier1">
+              <input class="form-check-input" type="radio" name="pricing_tier" id="pricing_tier_none"
+                     value="none" <?= $v('pricing_tier', 'none') === 'none' ? 'checked' : '' ?>>
+              <label class="form-check-label" for="pricing_tier_none">
+                No dynamic pricing <span class="text-muted">(off-season / low-demand)</span>
+              </label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="pricing_tier" id="pricing_tier_tier1"
+                     value="tier1" <?= $v('pricing_tier') === 'tier1' ? 'checked' : '' ?>>
+              <label class="form-check-label" for="pricing_tier_tier1">
                 Tier 1 — on-season Saturday (May–Sep) <span class="text-muted">+50 € net</span>
               </label>
             </div>
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="tier2" id="tier2"
-                     <?= $chk('tier2') ?>>
-              <label class="form-check-label" for="tier2">
-                Tier 2 — high-demand date <span class="text-muted">+75 € net</span>
+              <input class="form-check-input" type="radio" name="pricing_tier" id="pricing_tier_tier1_tier2"
+                     value="tier1_tier2" <?= $v('pricing_tier') === 'tier1_tier2' ? 'checked' : '' ?>>
+              <label class="form-check-label" for="pricing_tier_tier1_tier2">
+                Tier 1 + Tier 2 — on-season Saturday, high-demand <span class="text-muted">+125 € net</span>
               </label>
             </div>
           </div>
