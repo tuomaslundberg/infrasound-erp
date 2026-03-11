@@ -14,6 +14,10 @@ $routes = [
     ['#^/login$#',                      'modules/auth/login.php',         null],
     ['#^/logout$#',                     'modules/auth/logout.php',        null],
 
+    // Protected — minimum role: musician
+    ['#^/musician/gigs$#',              'modules/musician/gigs.php',      'musician'],
+    ['#^/musician/gigs/(\d+)$#',        'modules/musician/gig_detail.php','musician'],
+
     // Protected — minimum role: owner
     ['#^/$#',                           'modules/gigs/list.php',          'owner'],
     ['#^/gigs$#',                       'modules/gigs/list.php',          'owner'],
