@@ -7,6 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- `src/modules/gigs/form.php` — replaced two independent dynamic-pricing
+  checkboxes (tier1 / tier2) with a three-option radio group (`pricing_tier`:
+  `none` / `tier1` / `tier1_tier2`). Tier 2 is no longer independently
+  selectable. POST handler derives `$tier1`/`$tier2` booleans from the single
+  radio value; GET edit derives the radio value from the existing
+  `pricing_tier1`/`pricing_tier2` columns. `PriceCalculator` inputs and DB
+  schema unchanged.
 ### Added
 - `src/modules/musician/gigs.php` — read-only list of upcoming gigs for the
   logged-in musician; shows only gigs where the user has a `gig_personnel` row
