@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `src/modules/gigs/notes.php` — POST handler for `POST /gigs/{id}/notes`;
+  updates only `gigs.notes` for the given gig (PDO prepared statement); rejects
+  soft-deleted gigs; saves empty input as NULL; redirects back to detail page
+  (PRG pattern)
+- `src/index.php` — route `/gigs/{id}/notes` (POST, owner)
+- `src/modules/gigs/detail.php` — notes section always visible (shows
+  "No notes yet." placeholder when empty); inline edit toggle reveals a
+  textarea + Save / Cancel controls without a page reload (inline `<script>`)
+
 ### Fixed
 - `docker-compose.yml` — added volume mount for `src/assets/mail-templates` at
   `/var/www/src/assets/mail-templates` so `TemplateRenderer` can locate template

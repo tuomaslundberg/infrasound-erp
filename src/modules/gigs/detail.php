@@ -122,20 +122,53 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions) {
     </div>
     <?php endif; ?>
 
-    <?php if ($gig['notes']): ?>
     <div class="col-12">
       <div class="card">
-        <div class="card-header">Notes</div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          Notes
+          <a href="#" class="btn btn-link btn-sm py-0" id="notes-edit-toggle">Edit</a>
+        </div>
         <div class="card-body">
-          <p class="mb-0"><?= nl2br(htmlspecialchars($gig['notes'])) ?></p>
+          <div id="notes-display">
+            <?php if ($gig['notes']): ?>
+              <p class="mb-0"><?= nl2br(htmlspecialchars($gig['notes'])) ?></p>
+            <?php else: ?>
+              <p class="mb-0 text-muted">No notes yet.</p>
+            <?php endif; ?>
+          </div>
+          <form id="notes-form" method="post" action="/gigs/<?= (int)$gig['id'] ?>/notes" class="d-none">
+            <textarea name="notes" class="form-control mb-2" rows="4"><?= htmlspecialchars($gig['notes'] ?? '') ?></textarea>
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <a href="#" class="btn btn-link btn-sm" id="notes-cancel">Cancel</a>
+          </form>
         </div>
       </div>
     </div>
-    <?php endif; ?>
   </div>
 
   <div class="mt-3">
     <a href="/gigs" class="btn btn-link btn-sm px-0">← Back to gig list</a>
   </div>
+
+  <script>
+    (function () {
+      var toggle  = document.getElementById('notes-edit-toggle');
+      var cancel  = document.getElementById('notes-cancel');
+      var display = document.getElementById('notes-display');
+      var form    = document.getElementById('notes-form');
+
+      toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        display.classList.add('d-none');
+        form.classList.remove('d-none');
+      });
+
+      cancel.addEventListener('click', function (e) {
+        e.preventDefault();
+        form.classList.add('d-none');
+        display.classList.remove('d-none');
+      });
+    })();
+  </script>
 <?php
 });

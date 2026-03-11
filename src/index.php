@@ -22,6 +22,7 @@ $routes = [
     ['#^/gigs/(\d+)/edit$#',            'modules/gigs/form.php',          'owner'],
     ['#^/gigs/(\d+)/quote$#',           'modules/gigs/quote.php',         'owner'],
     ['#^/gigs/(\d+)/transition$#',      'modules/gigs/transition.php',    'owner'],
+    ['#^/gigs/(\d+)/notes$#',           'modules/gigs/notes.php',         'owner'],
 ];
 
 // ---------------------------------------------------------------------------
