@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `src/modules/gigs/personnel_add.php` — POST handler to assign a musician to
+  a gig (`gig_personnel` row); duplicate assignments rejected with a flash notice
+- `src/modules/gigs/personnel_remove.php` — POST handler to remove a musician
+  from a gig (hard delete of `gig_personnel` row)
+- `src/index.php` — routes `POST /gigs/{id}/personnel` and
+  `POST /gigs/{id}/personnel/{user_id}/remove` (both require `owner` role)
+- `src/modules/gigs/detail.php` — Personnel card: current lineup table with
+  Username / Role / Fee / Confirmed columns, inline add-musician form
+  (user select, role select, fee in €), Remove button per row, and flash
+  notices for add/remove/duplicate/error outcomes
 - `src/modules/gigs/notes.php` — POST handler for `POST /gigs/{id}/notes`;
   updates only `gigs.notes` for the given gig (PDO prepared statement); rejects
   soft-deleted gigs; saves empty input as NULL; redirects back to detail page

@@ -25,11 +25,33 @@ if (!$gig) {
 
 $transitions = gig_valid_transitions($gig['status']);
 
+// Personnel: current lineup
+$personnelStmt = $pdo->prepare(
+    "SELECT gp.user_id, u.username, gp.role, gp.fee_cents, gp.confirmed_at
+     FROM   gig_personnel gp
+     JOIN   users u ON u.id = gp.user_id
+     WHERE  gp.gig_id = ?
+     ORDER BY u.username ASC"
+);
+$personnelStmt->execute([$gigId]);
+$personnel = $personnelStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Available users for add-musician form (non-deleted, musician or higher)
+$usersStmt = $pdo->prepare(
+    "SELECT id, username, role
+     FROM   users
+     WHERE  deleted_at IS NULL
+       AND  role IN ('musician', 'owner', 'admin', 'developer')
+     ORDER BY username ASC"
+);
+$usersStmt->execute();
+$availableUsers = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Flash notices via query string
 $notice = $_GET['notice'] ?? null;
 $error  = $_GET['error']  ?? null;
 
-render_layout($gig['customer_name'], function () use ($gig, $transitions, $notice, $error) {
+render_layout($gig['customer_name'], function () use ($gig, $transitions, $personnel, $availableUsers, $notice, $error) {
 ?>
   <?php if ($notice === 'notes_saved'): ?>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -54,6 +76,33 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $notic
       <a href="/gigs/<?= (int)$gig['id'] ?>/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
     </div>
   </div>
+
+  <?php if ($notice === 'personnel_added'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Musician added to lineup.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($notice === 'personnel_removed'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Musician removed from lineup.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'duplicate_personnel'): ?>
+  <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    That musician is already assigned to this gig.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'invalid_input'): ?>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    Invalid input — please check the form and try again.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'db_error'): ?>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    A database error occurred — please try again.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php endif; ?>
 
   <?php if ($transitions): ?>
   <div class="d-flex gap-2 mb-3">
@@ -160,12 +209,98 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $notic
         </div>
       </div>
     </div>
+    <?php endif; ?>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">Personnel</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Fee</th>
+                <th>Confirmed</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if ($personnel): ?>
+                <?php foreach ($personnel as $p): ?>
+                <tr>
+                  <td><?= htmlspecialchars($p['username']) ?></td>
+                  <td><?= htmlspecialchars($p['role']) ?></td>
+                  <td><?= number_format($p['fee_cents'] / 100, 2, ',', ' ') ?> €</td>
+                  <td><?= $p['confirmed_at'] ? htmlspecialchars($p['confirmed_at']) : '—' ?></td>
+                  <td>
+                    <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/personnel/<?= (int)$p['user_id'] ?>/remove"
+                          class="remove-personnel-form"
+                          data-username="<?= htmlspecialchars($p['username']) ?>">
+                      <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                    </form>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr>
+                  <td colspan="5" class="text-muted text-center py-3">No musicians assigned yet.</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php if ($availableUsers): ?>
+        <div class="card-footer">
+          <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/personnel" class="row g-2 align-items-end">
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Musician</label>
+              <select name="user_id" class="form-select form-select-sm" required>
+                <option value="">— select —</option>
+                <?php foreach ($availableUsers as $u): ?>
+                <option value="<?= (int)$u['id'] ?>"><?= htmlspecialchars($u['username']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Role</label>
+              <select name="role" class="form-select form-select-sm" required>
+                <option value="">— select —</option>
+                <option value="vocalist">Vocalist</option>
+                <option value="guitarist">Guitarist</option>
+                <option value="bassist">Bassist</option>
+                <option value="drummer">Drummer</option>
+                <option value="keyboardist">Keyboardist</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Fee (€)</label>
+              <input type="number" name="fee" class="form-control form-control-sm" min="0" step="0.01" value="0" style="width:90px">
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </div>
+          </form>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+
   </div>
 
   <div class="mt-3">
     <a href="/gigs" class="btn btn-link btn-sm px-0">← Back to gig list</a>
   </div>
 
+<script>
+document.querySelectorAll('.remove-personnel-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+        var name = form.getAttribute('data-username');
+        if (!confirm('Remove ' + name + ' from lineup?')) e.preventDefault();
+    });
+});
+</script>
   <script>
     (function () {
       var toggle  = document.getElementById('notes-edit-toggle');
