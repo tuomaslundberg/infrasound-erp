@@ -209,7 +209,6 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
         </div>
       </div>
     </div>
-    <?php endif; ?>
 
     <div class="col-12">
       <div class="card">
