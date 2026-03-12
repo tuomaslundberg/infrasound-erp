@@ -14,6 +14,10 @@ $routes = [
     ['#^/login$#',                      'modules/auth/login.php',         null],
     ['#^/logout$#',                     'modules/auth/logout.php',        null],
 
+    // Protected — minimum role: musician
+    ['#^/musician/gigs$#',              'modules/musician/gigs.php',      'musician'],
+    ['#^/musician/gigs/(\d+)$#',        'modules/musician/gig_detail.php','musician'],
+
     // Protected — minimum role: owner
     ['#^/$#',                           'modules/gigs/list.php',          'owner'],
     ['#^/gigs$#',                       'modules/gigs/list.php',          'owner'],
@@ -24,6 +28,7 @@ $routes = [
     ['#^/gigs/(\d+)/transition$#',               'modules/gigs/transition.php',        'owner'],
     ['#^/gigs/(\d+)/personnel$#',               'modules/gigs/personnel_add.php',     'owner'],
     ['#^/gigs/(\d+)/personnel/(\d+)/remove$#',  'modules/gigs/personnel_remove.php',  'owner'],
+    ['#^/gigs/(\d+)/notes$#',           'modules/gigs/notes.php',         'owner'],
 ];
 
 // ---------------------------------------------------------------------------

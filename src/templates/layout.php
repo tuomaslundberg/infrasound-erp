@@ -31,10 +31,15 @@ function render_layout(string $title, callable $content): void
     <a class="navbar-brand" href="/">infrasound ERP</a>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto">
-        <?php if ($currentUser !== null): ?>
+        <?php if ($currentUser !== null && auth_has_role('owner')): ?>
         <li class="nav-item">
           <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/gigs') ? 'active' : '' ?>"
              href="/gigs">Gigs</a>
+        </li>
+        <?php elseif ($currentUser !== null): ?>
+        <li class="nav-item">
+          <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/musician/gigs') ? 'active' : '' ?>"
+             href="/musician/gigs">My Gigs</a>
         </li>
         <?php endif; ?>
       </ul>
