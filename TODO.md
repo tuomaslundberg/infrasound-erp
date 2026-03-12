@@ -73,9 +73,21 @@ At this point the ERP should be usable in place of old workflows.
 - [x] **Automate price calc trigger** — price recalculation fires automatically
       on any change to distance, tier flags, channel, or extras fields (no
       manual recalc button needed)
-- [ ] **Scope agent service** — when automation complexity warrants it, draft
-      `AGENTS_AGENT_SERVICE.md` and create `AGENTS_AGENT_SERVICE.md`
-      (currently blocked per CLAUDE.md until module is scoped)
+- [x] **Scope agent service** — spec drafted in `AGENTS_AGENT_SERVICE.md`
+
+### Agent service implementation (Phase 3 continuation)
+
+- [ ] **`InquiryExtractor.php`** — PHP class that calls Anthropic API
+      (`claude-sonnet-4-6`) with structured tool use to extract gig fields from
+      raw inquiry text; returns typed array of extracted fields  `[copilot]`
+- [ ] **Geocoding helper** — PHP function that geocodes a venue address via
+      Nominatim → OSRM to get driving distance (km) from Turku; fallback to
+      null on failure (owner enters manually)  `[copilot]`
+- [ ] **`GET/POST /agent/process-inquiry`** — web form: textarea for raw inquiry
+      text; on POST, calls `InquiryExtractor` + geocoder, upserts
+      customer/contact/venue, runs PriceCalculator, inserts gig with status
+      `inquiry`, redirects to gig detail  `[copilot]`
+- [ ] **Nav link** — add "New inquiry (AI)" to navigation for owner+ role
 
 ---
 
@@ -88,9 +100,9 @@ At this point the ERP should be usable in place of old workflows.
 - [x] **Schema: `gig_personnel`** — assign band members to a gig;
       fields: `gig_id`, `user_id`, `role` (e.g. `vocalist`, `guitarist`),
       `fee_cents`, `confirmed_at` (`db/migrations/004_gig_personnel.sql`)
-- [ ] **Personnel assignment UI** — assign/remove musicians from a gig;
+- [x] **Personnel assignment UI** — assign/remove musicians from a gig;
       show current lineup with role + fee on gig detail page  `[copilot]`
-- [ ] **Musician read-only gig view** — musicians see their upcoming gigs:
+- [x] **Musician read-only gig view** — musicians see their upcoming gigs:
       date, venue, order description, stage contact; requires `musician` role  `[copilot]`
 - [ ] **Musician availability** *(future enhancement)* — availability
       reporting flows (tentative interest, sign-up, remove); deferred until
@@ -134,14 +146,15 @@ At this point the ERP should be usable in place of old workflows.
 Small business logic tweaks and copy fixes. Add items here as they come up;
 good `[copilot]` candidates when clearly specified.
 
-- [ ] **Edit mail templates to handle Markdown links correctly** — currently e.g. "Spotify-linkki https://link.to.spotify"; should be "[Spotify-linkki](https://link.to.spotify)"  `[copilot]`
+- [x] **Edit mail templates to handle Markdown links correctly** — currently e.g. "Spotify-linkki https://link.to.spotify"; should be "[Spotify-linkki](https://link.to.spotify)"  `[copilot]`
 - [x] **Move necessary template/other needed files from old-files to a smarter directory structure** — E.g., `assets` or straight-to-db in case of smallish text files  `[copilot]`
 - [x] **Retain complete price calculation logic in gig entities** — This needs a slight schema change (a few new INT columns on `gigs`) `[copilot]`
-- [ ] **Refactor dynamic pricing flags to radio** — These are either-or in the sense that Tier 2 can't be activated without Tier 1; therefore we should have EITHER Tier 1 OR (Tier 1 AND Tier 2) `[copilot]`
+- [x] **Refactor dynamic pricing flags to radio** — These are either-or in the sense that Tier 2 can't be activated without Tier 1; therefore we should have EITHER Tier 1 OR (Tier 1 AND Tier 2) `[copilot]`
 - [x] **Obfuscate dev customer records** — Currently, `db/seeds/dev.sql` contains real customer data extracted from old data stores. This (along with other dumps containing real data) needs to either be obfuscated (name changes will suffice) or deleted from VCS `[copilot]`
-- [ ] **Add notes field to gig view** — Freeform text area to add soft data in (e.g. old statuses such as "Asiakas päätynyt toiseen bändiin" or special requests like "Toivottu myös esiintymistä vihkitilaisuudessa"). `[copilot]`
+- [x] **Add notes field to gig view** — Freeform text area to add soft data in (e.g. old statuses such as "Asiakas päätynyt toiseen bändiin" or special requests like "Toivottu myös esiintymistä vihkitilaisuudessa"). `[copilot]`
 - [x] **Bug: gig invoicing data not correctly merged with gig table data** — Multiple duplicate records in the gig table that pertain to the same gig, one of which is fetched from `gigs-YYYY.xlsx` and the other from `gig-invoicing.xlsx` (stating "no matching gigs-YYYY record"). Proposed first step for fix: search cli/etl/extract_gigs.py for logic errors in the merge step.
 - [ ] **Merge quote/customer folder history data** — Combine data found in quote text files to DB (requires some specification; mainly locating the text files)
+- [ ] **Gig detail: show full pricing inputs** — Pricing card on detail page currently shows only quoted price, distance, car 1, other travel; consider also displaying the tier flags and musician count so the owner can verify the calculation inputs without opening the edit form  `[copilot]`
 - [ ] _(add items here)_
 
 ---
