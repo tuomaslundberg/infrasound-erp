@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `src/modules/agent/process_inquiry.php` — car1 baseline mileage corrected to
+  `2 × driving distance` (round trip); was incorrectly using the one-way distance
+- `src/modules/gigs/form.php` — contact email field changed from `type="email"` to
+  `type="text"` so AI-extracted placeholders like `<UNKNOWN>` can be saved and
+  corrected at review time; browser email validation was blocking form submission
+- `src/modules/gigs/form.php` — distance label corrected from "Straight-line
+  distance" to "Driving distance" (geocoder returns driving distance, not straight-line)
+
 ### Added
 - `src/modules/agent/process_inquiry.php` — AI-assisted inquiry form: owner pastes
   raw inquiry text; calls Anthropic API to extract structured fields; geocodes venue

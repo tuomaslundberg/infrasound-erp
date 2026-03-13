@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'meta'  => ['channel' => 'mail'],
         'gig'   => ['distances' => [
             'from_turku_km'          => $distFromTurku ?? 0,
-            'car1_trip_km'           => $distFromTurku ?? 0,
+            'car1_trip_km'           => ($distFromTurku ?? 0) * 2,
             'car2_trip_km'           => 0,
             'other_travel_costs_eur' => 0,
         ]],
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $customerId, $contactId, $venueId, $gigDate,
             $customerType, $orderDesc,
             $basePriceCents, $basePriceCents,
-            $distFromTurku, 0,
+            $distFromTurku !== null ? $distFromTurku * 2 : null, 0,
             $notes,
         ]);
         $gigId = (int)$pdo->lastInsertId();

@@ -369,7 +369,7 @@ render_layout($pageTitle, function () use ($errors, $v, $chk, $isEdit, $gigId, $
             </div>
             <div class="col-sm-6">
               <label class="form-label">Email</label>
-              <input type="email" name="contact_email" class="form-control" value="<?= $v('contact_email') ?>">
+              <input type="text" name="contact_email" class="form-control" value="<?= $v('contact_email') ?>">
             </div>
             <div class="col-sm-6">
               <label class="form-label">Phone</label>
@@ -401,7 +401,7 @@ render_layout($pageTitle, function () use ($errors, $v, $chk, $isEdit, $gigId, $
               <input type="text" name="venue_postal" class="form-control" value="<?= $v('venue_postal') ?>">
             </div>
             <div class="col-12">
-              <label class="form-label">Straight-line distance from Turku (km)</label>
+              <label class="form-label">Driving distance from Turku (km)</label>
               <input type="number" name="dist_from_turku" class="form-control" step="0.1" min="0"
                      value="<?= $v('dist_from_turku', '0') ?>">
               <div class="form-text">Used for the distance premium in pricing.</div>

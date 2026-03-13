@@ -77,17 +77,27 @@ At this point the ERP should be usable in place of old workflows.
 
 ### Agent service implementation (Phase 3 continuation)
 
-- [ ] **`InquiryExtractor.php`** — PHP class that calls Anthropic API
+- [x] **`InquiryExtractor.php`** — PHP class that calls Anthropic API
       (`claude-sonnet-4-6`) with structured tool use to extract gig fields from
-      raw inquiry text; returns typed array of extracted fields  `[copilot]`
-- [ ] **Geocoding helper** — PHP function that geocodes a venue address via
-      Nominatim → OSRM to get driving distance (km) from Turku; fallback to
-      null on failure (owner enters manually)  `[copilot]`
-- [ ] **`GET/POST /agent/process-inquiry`** — web form: textarea for raw inquiry
+      raw inquiry text; returns typed array of extracted fields
+- [x] **Geocoding helper** — geocodes a venue address via Nominatim → OSRM to
+      get driving distance (km) from Turku; fallback to null on failure
+- [x] **`GET/POST /agent/process-inquiry`** — web form: textarea for raw inquiry
       text; on POST, calls `InquiryExtractor` + geocoder, upserts
       customer/contact/venue, runs PriceCalculator, inserts gig with status
-      `inquiry`, redirects to gig detail  `[copilot]`
-- [ ] **Nav link** — add "New inquiry (AI)" to navigation for owner+ role
+      `inquiry`, redirects to gig detail
+- [x] **Nav link** — "New inquiry (AI)" in navigation for owner+ role
+- [ ] **Data-driven mileage baseline** *(blocked on ETL enrichment)* — once
+      historical mileage data is extracted from old quote files, build a
+      statistical baseline model; rules of thumb to encode once data confirms them:
+      car1 = 2 × driving distance (round trip from Turku); if venue near Turku,
+      compensate 2 train/bus tickets Helsinki–venue–Helsinki instead; if venue
+      in Helsinki, compensate actual incidentals (bus/short car trip); if venue
+      is remote with no viable public transport at gig end time, assume 2 vehicles.
+      Musician home locations (gig_personnel) can refine further.  *(high priority)*
+- [ ] **Quote template auto-selection** — default to `quote.txt`; switch to
+      `venue-familiar-quote.txt` if venue has ≥1 delivered gig in DB; surface
+      "already booked" message if a confirmed gig exists on the inquiry date  `[copilot]`
 
 ---
 
@@ -126,7 +136,11 @@ At this point the ERP should be usable in place of old workflows.
       `gig_id`; fields include invoice number, issue date, due date, status
       (draft/sent/paid/overdue), amount in eurocents  `[copilot]`
 - [ ] **Outgoing invoice creation** — generate invoice from confirmed gig;
-      populate amount from `quoted_price_cents`; produce printable view
+      populate amount from `quoted_price_cents`; produce printable view.
+      Prerequisite: `PriceCalculator` must return itemised rows (net per line,
+      VAT rate, gross per line, total net, total VAT, total gross) so that
+      legally compliant invoice rows can be generated — this is currently not
+      the case; the calculator only returns `gross_total`.
 - [ ] **Invoice list / status tracking** — list with status filter; mark as
       paid  `[copilot]`
 - [ ] **Incoming invoice / expense log** — log expenses (PA hire, travel, etc.)
@@ -155,6 +169,7 @@ good `[copilot]` candidates when clearly specified.
 - [x] **Bug: gig invoicing data not correctly merged with gig table data** — Multiple duplicate records in the gig table that pertain to the same gig, one of which is fetched from `gigs-YYYY.xlsx` and the other from `gig-invoicing.xlsx` (stating "no matching gigs-YYYY record"). Proposed first step for fix: search cli/etl/extract_gigs.py for logic errors in the merge step.
 - [ ] **Merge quote/customer folder history data** — Combine data found in quote text files to DB (requires some specification; mainly locating the text files)
 - [ ] **Gig detail: show full pricing inputs** — Pricing card on detail page currently shows only quoted price, distance, car 1, other travel; consider also displaying the tier flags and musician count so the owner can verify the calculation inputs without opening the edit form  `[copilot]`
+- [ ] **Gig list: filter / sort / search / pagination** — currently shows all gigs flat; add status filter, date sort, customer search, and pagination for operability at scale  `[copilot]`
 - [ ] _(add items here)_
 
 ---
@@ -168,6 +183,9 @@ good `[copilot]` candidates when clearly specified.
 - **Acceptance-flow automation** — customer replies accepting the offer → owner
   pastes reply into the agent → agent transitions gig `quoted → confirmed` and
   records any new details; same paste-to-agent UX as inquiry processing
+- **Agent form supplementary fields** — if/when the flow becomes more automated,
+  add manual override inputs (channel, email, phone) to the AI inquiry page for
+  data not present in the raw text; low value while manual review is always required
 - **ProtonMail inbox integration** — attach the saturday@infrasound.fi inbox
   to the ERP for inquiry triage; blocked by email classification complexity
   (inbox has mixed use cases)
