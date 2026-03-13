@@ -2,92 +2,110 @@
 
 Copy each section below as a separate GitHub Issue.
 Title is the H2 heading; body is everything under it.
+Struck-through sections are already merged and can be skipped.
 
 ---
 
-## feat: personnel assignment UI on gig detail page
+## feat: gig list filter, sort, search, and pagination
 
 ### Context
 
-`db/migrations/004_gig_personnel.sql` added the `gig_personnel` table
-(`gig_id`, `user_id`, `role` ENUM, `fee_cents`, `confirmed_at`).
-The `users` table already exists with a `role` ENUM that includes `musician`.
-
-The gig detail page (`src/modules/gigs/detail.php`) currently shows no
-personnel information. Musicians need to be assignable to gigs from this page.
+`src/modules/gigs/list.php` currently fetches all non-deleted gigs in a single
+`SELECT … ORDER BY gig_date ASC` query and renders them in a flat table.
+With a growing number of gigs (legacy data already imported), the list needs
+filtering, sorting, and search to be usable day-to-day.
 
 ### Task
 
-Add a **Personnel** card to the gig detail page:
+Extend `list.php` to support the following, all via GET query parameters
+(no JS required — plain form submit or anchor links):
 
-1. **Current lineup** — query `gig_personnel JOIN users` and display a table
-   with columns: Username, Role, Fee (€), Confirmed. If empty, show a
-   placeholder row.
-2. **Add musician form** — a small inline form with:
-   - `<select>` of active users (non-deleted, role `musician` or higher)
-   - `<select>` of roles matching the ENUM: `vocalist`, `guitarist`, `bassist`,
-     `drummer`, `keyboardist`, `other`
-   - Fee field (number input, euros; stored as eurocents)
-   - Submit → POST to `/gigs/{id}/personnel` (new route)
-3. **Remove** — a Remove button per row → POST to
-   `/gigs/{id}/personnel/{user_id}/remove`
-4. New routes (both `owner` minimum role):
-   - `POST /gigs/(\d+)/personnel` → `modules/gigs/personnel_add.php`
-   - `POST /gigs/(\d+)/personnel/(\d+)/remove` → `modules/gigs/personnel_remove.php`
+1. **Status filter** — a row of buttons or a `<select>` above the table for:
+   `all` (default) / `inquiry` / `quoted` / `confirmed` / `delivered` /
+   `cancelled` / `declined`. Appends `?status=…` to the URL.
 
-Fee input is in euros (decimal); multiply × 100 before storing.
-All DB writes via PDO prepared statements.
+2. **Sort** — clicking a column header toggles `ASC`/`DESC` on that column.
+   Supported sort columns: `gig_date` (default ASC), `customer_name`,
+   `quoted_price_cents`. Use `?sort=column&dir=asc|desc` query params.
+   Render a small arrow indicator (▲/▼) next to the active sort column header.
+
+3. **Customer search** — a text input above the table that filters on
+   `customers.name LIKE ?` (case-insensitive). Appends `?q=…` to the URL.
+   Trim and sanitise with PDO bound parameter; never interpolate into SQL.
+
+4. **Pagination** — show 25 rows per page. Use `?page=N` (1-indexed).
+   Show a simple prev/next link row below the table; include total count
+   ("Showing 26–50 of 143").
+
+All four controls must coexist: a filtered + searched + sorted result set
+is paginated correctly. The SQL query must use a `COUNT(*)` subquery or
+second query for the total, and `LIMIT`/`OFFSET` for the page slice.
+
+All query parameters must be read via `$_GET` and validated/cast before use;
+sort column must be whitelisted against an allowed list before interpolating
+into the query.
 
 ### Acceptance criteria
 
-- [ ] Personnel card visible on gig detail page
-- [ ] Add form inserts a `gig_personnel` row; duplicate (same user) rejected
-      gracefully (flash notice, no 500)
-- [ ] Remove deletes the row (hard delete is acceptable — no soft-delete
-      requirement for personnel assignments)
-- [ ] Fee stored as eurocents, displayed as `X,XX €`
-- [ ] No raw query strings with user input
+- [ ] Status filter works; `all` shows all statuses
+- [ ] Sort by date, customer name, and price; direction toggles on re-click
+- [ ] Customer search filters correctly; SQL injection not possible
+- [ ] Pagination shows 25 rows per page with correct total count
+- [ ] All four controls compose correctly (filter + search + sort + page)
+- [ ] No raw user input interpolated into SQL
 - [ ] CHANGELOG.md updated
 
 ---
 
-## feat: musician read-only gig view
+## feat: show full pricing inputs on gig detail page
 
 ### Context
 
-The `users` table has a `musician` role. Musicians should be able to log in
-and see a read-only list of their upcoming gigs without having access to
-pricing, customer contact details, or management controls.
+The **Pricing** card on `src/modules/gigs/detail.php` currently shows only
+four fields: Quoted price, Distance (Turku), Car 1 trip, Other travel.
+
+The `gigs` table has eight pricing-input columns (added in migration 003):
+`pricing_tier1`, `pricing_tier2`, `qty_ennakkoroudaus`, `qty_song_requests_extra`,
+`qty_extra_performances`, `qty_background_music_h`, `qty_live_album`,
+`discount_cents`. These are not rendered anywhere on the detail page, forcing
+the owner to open the edit form to verify what inputs produced a given price.
 
 ### Task
 
-1. **Musician gig list** (`GET /musician/gigs`) — shows only gigs where the
-   logged-in user has a row in `gig_personnel` and `gig_date >= CURDATE()`,
-   ordered by `gig_date ASC`. Columns: Date, Customer (first name only for
-   weddings / company name for companies), Venue name + city, Role, Status.
-2. **Musician gig detail** (`GET /musician/gigs/{id}`) — read-only card with:
-   - Date, venue name + address + city
-   - Order description (set count / duration)
-   - Stage contact name + phone (from `contacts` joined via `gigs.contact_id`)
-   - Song requests (artist + title, first-dance flag)
-   - Own role and fee for this gig
-   - **Not shown**: quoted/base price, other personnel fees, customer email,
-     channel, pricing inputs
-3. Add routes to `src/index.php` with minimum role `musician`:
-   - `GET /musician/gigs`
-   - `GET /musician/gigs/(\d+)`
-4. Add a nav item visible only to users with role `musician` (hide the main
-   gig management nav from musicians).
+Extend the Pricing card in `detail.php` to also display the pricing inputs.
+The SELECT in `detail.php` already uses `g.*` so all columns are available.
+
+Add a second `<dl>` block (or extend the existing one) below the current four
+rows:
+
+| Label | Value |
+|---|---|
+| Dynamic pricing | "None" / "Tier 1 (+50 € net)" / "Tier 1 + 2 (+125 € net)" |
+| Ennakkoroudaus | qty × 200 € (or `—` if 0) |
+| Extra song requests | qty × 100 € (or `—` if 0) |
+| Extra performances | qty × 100 € (or `—` if 0) |
+| Background music | qty h × 300 € (or `—` if 0) |
+| Live album | qty × 300 € (or `—` if 0) |
+| Discount | amount in € (or `—` if 0) |
+
+Zero-value quantities should render as `—`, not `0`, to reduce visual noise.
+Pricing tier derives from `pricing_tier1`/`pricing_tier2` boolean columns.
 
 ### Acceptance criteria
 
-- [ ] `musician`-role user can log in and reach `/musician/gigs`
-- [ ] List shows only gigs the musician is assigned to, upcoming only
-- [ ] Detail page shows venue, contact, song requests, own role/fee
-- [ ] Pricing fields (quoted price, base price, cost inputs) are **not** rendered
-- [ ] `owner`/`admin` visiting `/musician/gigs` also works (they pass the
-      `musician` role check); no need to restrict upwards
+- [ ] All seven pricing inputs visible on the detail page without opening edit
+- [ ] Pricing tier shown as a human-readable label
+- [ ] Zero quantities render as `—`
+- [ ] Monetary values formatted as `X,XX €` (consistent with existing fields)
 - [ ] CHANGELOG.md updated
+
+---
+
+## ~~feat: personnel assignment UI on gig detail page~~ ✅ merged
+
+---
+
+## ~~feat: musician read-only gig view~~ ✅ merged
 
 ---
 

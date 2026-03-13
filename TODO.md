@@ -89,12 +89,13 @@ At this point the ERP should be usable in place of old workflows.
 - [x] **Nav link** — "New inquiry (AI)" in navigation for owner+ role
 - [ ] **Data-driven mileage baseline** *(blocked on ETL enrichment)* — once
       historical mileage data is extracted from old quote files, build a
-      statistical baseline model; rules of thumb to encode once data confirms them:
-      car1 = 2 × driving distance (round trip from Turku); if venue near Turku,
-      compensate 2 train/bus tickets Helsinki–venue–Helsinki instead; if venue
-      in Helsinki, compensate actual incidentals (bus/short car trip); if venue
-      is remote with no viable public transport at gig end time, assume 2 vehicles.
-      Musician home locations (gig_personnel) can refine further.  *(high priority)*
+      statistical baseline model. Known rules of thumb (to validate against data):
+      band is 6 people; 4–5 travel from Turku by car + trailer (always, even for
+      Turku gigs); car1 baseline = 2 × driving distance (round trip).
+      1–2 members are Helsinki-based: if venue is near Turku or in Helsinki,
+      compensate their train/bus tickets (Helsinki–venue–Helsinki); if they choose
+      to carpool, compensate equivalent mileage. If venue is completely remote
+      (no public transport at gig-end time), assume 2 vehicles.  *(high priority)*
 - [ ] **Quote template auto-selection** — default to `quote.txt`; switch to
       `venue-familiar-quote.txt` if venue has ≥1 delivered gig in DB; surface
       "already booked" message if a confirmed gig exists on the inquiry date  `[copilot]`
@@ -170,6 +171,9 @@ good `[copilot]` candidates when clearly specified.
 - [ ] **Merge quote/customer folder history data** — Combine data found in quote text files to DB (requires some specification; mainly locating the text files)
 - [ ] **Gig detail: show full pricing inputs** — Pricing card on detail page currently shows only quoted price, distance, car 1, other travel; consider also displaying the tier flags and musician count so the owner can verify the calculation inputs without opening the edit form  `[copilot]`
 - [ ] **Gig list: filter / sort / search / pagination** — currently shows all gigs flat; add status filter, date sort, customer search, and pagination for operability at scale  `[copilot]`
+- [ ] **User creation dashboard** — web UI for creating/managing user accounts
+      (currently requires manual SQL); low priority but needed for testing
+      role-based access without writing SQL  `[copilot]`
 - [ ] _(add items here)_
 
 ---
