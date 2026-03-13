@@ -7,6 +7,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `src/modules/gigs/list.php` — status filter (button group, `?status=`), sortable
+  column headers with ▲/▼ indicator (`?sort=&dir=`), customer name search via
+  `LIKE` bound parameter (`?q=`), and pagination at 25 rows/page (`?page=N`) with
+  "Showing X–Y of Z" count and prev/next links; all four controls compose correctly;
+  sort column whitelisted before SQL interpolation; no raw user input in SQL
+
 ### Fixed
 - `src/modules/agent/process_inquiry.php` — car1 baseline mileage corrected to
   `2 × driving distance` (round trip); was incorrectly using the one-way distance
