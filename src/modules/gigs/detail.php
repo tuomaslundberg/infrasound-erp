@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../templates/layout.php';
 require_once __DIR__ . '/../../../config/gig_states.php';
+require_once __DIR__ . '/../../../cli/lib/PriceCalculator.php';
 
 $gigId = isset($routeParams[0]) ? (int)$routeParams[0] : 0;
 
@@ -170,6 +171,67 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
             <dd class="col-sm-7">
               <?= $gig['other_travel_costs_cents']
                   ? number_format($gig['other_travel_costs_cents'] / 100, 2, ',', ' ') . ' €'
+                  : '—' ?>
+            </dd>
+          </dl>
+
+          <hr class="my-2">
+
+          <dl class="row mb-0">
+            <dt class="col-sm-5">Dynamic pricing</dt>
+            <dd class="col-sm-7">
+              <?php
+              $tier1Net = PriceCalculator::TIER1_MARKUP;
+              $tier12Net = PriceCalculator::TIER1_MARKUP + PriceCalculator::TIER2_MARKUP;
+              if ($gig['pricing_tier1'] && $gig['pricing_tier2']) {
+                  echo 'Tier 1 + 2 (+' . number_format($tier12Net, 0, ',', ' ') . ' € net)';
+              } elseif ($gig['pricing_tier1']) {
+                  echo 'Tier 1 (+' . number_format($tier1Net, 0, ',', ' ') . ' € net)';
+              } else {
+                  echo 'None';
+              }
+              ?>
+            </dd>
+
+            <dt class="col-sm-5">Ennakkoroudaus</dt>
+            <dd class="col-sm-7">
+              <?= $gig['qty_ennakkoroudaus']
+                  ? (int)$gig['qty_ennakkoroudaus'] . ' × ' . number_format(PriceCalculator::GROSS_ENNAKKOROUDAUS, 2, ',', ' ') . ' €'
+                  : '—' ?>
+            </dd>
+
+            <dt class="col-sm-5">Extra song requests</dt>
+            <dd class="col-sm-7">
+              <?= $gig['qty_song_requests_extra']
+                  ? (int)$gig['qty_song_requests_extra'] . ' × ' . number_format(PriceCalculator::GROSS_SONG_REQUEST_EXTRA, 2, ',', ' ') . ' €'
+                  : '—' ?>
+            </dd>
+
+            <dt class="col-sm-5">Extra performances</dt>
+            <dd class="col-sm-7">
+              <?= $gig['qty_extra_performances']
+                  ? (int)$gig['qty_extra_performances'] . ' × ' . number_format(PriceCalculator::GROSS_EXTRA_PERFORMANCE, 2, ',', ' ') . ' €'
+                  : '—' ?>
+            </dd>
+
+            <dt class="col-sm-5">Background music</dt>
+            <dd class="col-sm-7">
+              <?= $gig['qty_background_music_h']
+                  ? (int)$gig['qty_background_music_h'] . ' h × ' . number_format(PriceCalculator::GROSS_BACKGROUND_MUSIC_HR, 2, ',', ' ') . ' €'
+                  : '—' ?>
+            </dd>
+
+            <dt class="col-sm-5">Live album</dt>
+            <dd class="col-sm-7">
+              <?= $gig['qty_live_album']
+                  ? (int)$gig['qty_live_album'] . ' × ' . number_format(PriceCalculator::GROSS_LIVE_ALBUM, 2, ',', ' ') . ' €'
+                  : '—' ?>
+            </dd>
+
+            <dt class="col-sm-5">Discount</dt>
+            <dd class="col-sm-7">
+              <?= $gig['discount_cents']
+                  ? number_format($gig['discount_cents'] / 100, 2, ',', ' ') . ' €'
                   : '—' ?>
             </dd>
           </dl>
