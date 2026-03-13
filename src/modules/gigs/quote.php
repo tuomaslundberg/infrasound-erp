@@ -11,6 +11,7 @@ $stmt = $pdo->prepare(
     "SELECT g.id, g.gig_date, g.status, g.channel, g.customer_type,
             g.order_description, g.quoted_price_cents, g.base_price_cents,
             g.car1_distance_km, g.car2_distance_km, g.other_travel_costs_cents,
+            g.venue_id,
             c.name  AS customer_name,
             co.first_name AS contact_first_name, co.last_name AS contact_last_name,
             v.name  AS venue_name, v.city AS venue_city
@@ -40,7 +41,36 @@ $available = array_filter($allTypes, fn($t) => file_exists(
     $renderer->resolveTemplatePath('fi', $gig['channel'], $gig['customer_type'], $t)
 ));
 
-$selectedType = $_GET['type'] ?? 'quote';
+// Smart default: check DB context to suggest the most appropriate template
+$isAlreadyBooked = false;
+$isVenueFamiliar = false;
+
+$bookedStmt = $pdo->prepare(
+    'SELECT COUNT(*) FROM gigs
+     WHERE  gig_date = ? AND status = ? AND deleted_at IS NULL AND id != ?'
+);
+$bookedStmt->execute([$gig['gig_date'], 'confirmed', $gigId]);
+$isAlreadyBooked = (bool)$bookedStmt->fetchColumn();
+
+if ($gig['venue_id']) {
+    $familiarStmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM gigs
+         WHERE  venue_id = ? AND status = ? AND deleted_at IS NULL AND id != ?'
+    );
+    $familiarStmt->execute([$gig['venue_id'], 'delivered', $gigId]);
+    $isVenueFamiliar = (bool)$familiarStmt->fetchColumn();
+}
+
+// Priority: sorry-were-booked > venue-familiar-quote > quote
+$autoType = 'quote';
+if ($isVenueFamiliar && in_array('venue-familiar-quote', $available, true)) {
+    $autoType = 'venue-familiar-quote';
+}
+if ($isAlreadyBooked && in_array('sorry-were-booked', $available, true)) {
+    $autoType = 'sorry-were-booked';
+}
+
+$selectedType = $_GET['type'] ?? $autoType;
 if (!in_array($selectedType, $available, true)) {
     $selectedType = $available ? reset($available) : 'quote';
 }
@@ -66,13 +96,26 @@ try {
 
 $formatter = new TemplateRenderer(); // for formatPrice helper
 render_layout('Quote — ' . $gig['customer_name'], function ()
-    use ($gig, $gigId, $available, $selectedType, $rendered, $renderError, $grossTotal, $formatter)
+    use ($gig, $gigId, $available, $selectedType, $rendered, $renderError, $grossTotal, $formatter,
+         $isAlreadyBooked, $isVenueFamiliar, $autoType)
 {
 ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Quote — <?= htmlspecialchars($gig['customer_name']) ?></h2>
     <a href="/gigs/<?= $gigId ?>" class="btn btn-link btn-sm px-0">← Back to gig</a>
   </div>
+
+  <?php if ($isAlreadyBooked): ?>
+  <div class="alert alert-warning">
+    <strong>Already booked:</strong> a confirmed gig exists on <?= htmlspecialchars($gig['gig_date']) ?>.
+    Consider using the <em>sorry-were-booked</em> template.
+  </div>
+  <?php elseif ($isVenueFamiliar && $autoType === 'venue-familiar-quote'): ?>
+  <div class="alert alert-info alert-dismissible fade show">
+    Venue recognised from a previous delivered gig — using <em>venue-familiar-quote</em> template.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php endif; ?>
 
   <div class="row g-3">
 

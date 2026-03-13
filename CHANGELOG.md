@@ -12,6 +12,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   below the existing four rows: Dynamic pricing tier (None / Tier 1 / Tier 1 + 2),
   Ennakkoroudaus, Extra song requests, Extra performances, Background music, Live album,
   and Discount. Zero-value quantities render as `—`; monetary values use `X,XX €` format.
+### Changed
+- `src/modules/gigs/quote.php` — template auto-selection: defaults to
+  `venue-familiar-quote` if the venue has ≥1 delivered gig in DB, or
+  `sorry-were-booked` if a confirmed gig already exists on the inquiry date
+  (takes priority over venue-familiar); explicit `?type=` param still overrides.
+  An "already booked" warning banner is shown regardless of selected template;
+  a dismissible info banner is shown when venue-familiar is auto-selected.
 
 ### Fixed
 - `src/modules/agent/process_inquiry.php` — car1 baseline mileage corrected to
