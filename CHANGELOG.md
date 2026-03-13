@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `src/modules/gigs/detail.php` — Pricing card now shows all seven pricing inputs
+  below the existing four rows: Dynamic pricing tier (None / Tier 1 / Tier 1 + 2),
+  Ennakkoroudaus, Extra song requests, Extra performances, Background music, Live album,
+  and Discount. Zero-value quantities render as `—`; monetary values use `X,XX €` format.
+
 ### Fixed
 - `src/modules/agent/process_inquiry.php` — car1 baseline mileage corrected to
   `2 × driving distance` (round trip); was incorrectly using the one-way distance
