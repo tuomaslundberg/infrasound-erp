@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `src/modules/gigs/list.php` — status filter (button group, `?status=`), sortable
+  column headers with ▲/▼ indicator (`?sort=&dir=`), customer name search via
+  `LIKE` bound parameter (`?q=`), and pagination at 25 rows/page (`?page=N`) with
+  "Showing X–Y of Z" count and prev/next links; all four controls compose correctly;
+  sort column whitelisted before SQL interpolation; no raw user input in SQL
 - `src/modules/gigs/detail.php` — Pricing card now shows all seven pricing inputs
   below the existing four rows: Dynamic pricing tier (None / Tier 1 / Tier 1 + 2),
   Ennakkoroudaus, Extra song requests, Extra performances, Background music, Live album,
