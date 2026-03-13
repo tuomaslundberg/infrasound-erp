@@ -8,6 +8,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `src/modules/agent/process_inquiry.php` — AI-assisted inquiry form: owner pastes
+  raw inquiry text; calls Anthropic API to extract structured fields; geocodes venue
+  address via Nominatim + OSRM to get driving distance from Turku; creates
+  customer/contact/venue/gig rows in a transaction; gig created with `status = inquiry`;
+  redirects to gig detail with a review notice
+- `src/modules/agent/lib/InquiryExtractor.php` — wraps Anthropic API tool_use call
+  (`claude-sonnet-4-6`); returns typed array of extracted gig fields; throws
+  `RuntimeException` on API or curl error
+- `src/modules/agent/lib/GeocodingHelper.php` — geocodes a Finnish address via
+  Nominatim (OSM) then routes Turku → venue via OSRM public API; returns driving
+  distance in km or null on failure
+- `src/index.php` — route `GET/POST /agent/process-inquiry` (owner role)
+- `src/templates/layout.php` — "New inquiry (AI)" nav link for owner+ role
+- `src/modules/gigs/detail.php` — `inquiry_created` flash notice shown after AI
+  extraction, reminding owner to review extracted fields before quoting
+- `AGENTS_AGENT_SERVICE.md` — module scope document for the agent service
+
+### Added
 - `src/modules/gigs/personnel_add.php` — POST handler to assign a musician to
   a gig (`gig_personnel` row); duplicate assignments rejected with a flash notice
 - `src/modules/gigs/personnel_remove.php` — POST handler to remove a musician

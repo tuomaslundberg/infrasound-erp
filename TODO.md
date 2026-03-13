@@ -165,6 +165,9 @@ good `[copilot]` candidates when clearly specified.
   freeform contact form with a structured inquiry form that writes to the ERP;
   requires the router to support unauthenticated public routes (planned from
   Phase 1)
+- **Acceptance-flow automation** — customer replies accepting the offer → owner
+  pastes reply into the agent → agent transitions gig `quoted → confirmed` and
+  records any new details; same paste-to-agent UX as inquiry processing
 - **ProtonMail inbox integration** — attach the saturday@infrasound.fi inbox
   to the ERP for inquiry triage; blocked by email classification complexity
   (inbox has mixed use cases)

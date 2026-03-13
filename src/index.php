@@ -29,6 +29,9 @@ $routes = [
     ['#^/gigs/(\d+)/personnel$#',               'modules/gigs/personnel_add.php',     'owner'],
     ['#^/gigs/(\d+)/personnel/(\d+)/remove$#',  'modules/gigs/personnel_remove.php',  'owner'],
     ['#^/gigs/(\d+)/notes$#',           'modules/gigs/notes.php',         'owner'],
+
+    // Agent service
+    ['#^/agent/process-inquiry$#',      'modules/agent/process_inquiry.php', 'owner'],
 ];
 
 // ---------------------------------------------------------------------------

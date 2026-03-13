@@ -53,7 +53,12 @@ $error  = $_GET['error']  ?? null;
 
 render_layout($gig['customer_name'], function () use ($gig, $transitions, $personnel, $availableUsers, $notice, $error) {
 ?>
-  <?php if ($notice === 'notes_saved'): ?>
+  <?php if ($notice === 'inquiry_created'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Inquiry created from AI extraction — review the fields below and correct any errors before generating a quote.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($notice === 'notes_saved'): ?>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
     Notes saved.
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>

@@ -111,10 +111,35 @@ src/modules/agent/
 
 ---
 
+## Distance vs mileage — important distinction
+
+Two separate numeric concepts must not be confused:
+
+| Concept | DB column | Purpose | How set |
+|---------|-----------|---------|---------|
+| **Distance from Turku** | `venues.distance_from_turku_km` | Distance premium in pricing (flat rate by km band) | Geocoded in V1; owner can correct |
+| **Car 1 mileage** | `gigs.car1_distance_km` | Travel compensation (€0.81/km) — actual driven route: band members' pickups, trailer fetch, full round trip | Estimated by owner |
+| **Car 2 mileage** | `gigs.car2_distance_km` | Second vehicle compensation (€0.55/km) — same concept | Estimated by owner |
+
+Mileage estimation is substantially more complex than distance: it depends on who is
+performing (gig_personnel), who has a car, where they live, whether the trailer is
+needed, etc. In future this could be partially automated from gig_personnel data.
+
+The agent service populates `distance_from_turku_km` from geocoding (Turku → venue)
+and uses it as a baseline pre-fill for `car1_distance_km` only. The owner must
+verify and correct mileage estimates before generating a quote.
+
+---
+
 ## Future / Keep door open
 
+- **Acceptance-flow automation** — customer replies accepting the offer → owner pastes
+  the reply into the agent → agent records any additional info and transitions the gig
+  from `quoted` → `confirmed`; same paste-to-agent UX as inquiry processing
 - **ProtonMail inbox scraping** — webhook or polling → POST raw email body to
   `/agent/process-inquiry`; same extraction + creation path
 - **Confidence scoring** — flag low-confidence extractions for mandatory review before save
+- **Mileage estimation from gig_personnel** — once gig_personnel data is populated,
+  estimate car routes from known band member locations / vehicle ownership
 - **Public web form** — structured inquiry form on saturday.band writes to ERP directly
   (inquiry-status gig created, no LLM needed for that path)
