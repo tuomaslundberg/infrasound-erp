@@ -96,9 +96,9 @@ At this point the ERP should be usable in place of old workflows.
       compensate their train/bus tickets (Helsinki–venue–Helsinki); if they choose
       to carpool, compensate equivalent mileage. If venue is completely remote
       (no public transport at gig-end time), assume 2 vehicles.  *(high priority)*
-- [ ] **Quote template auto-selection** — default to `quote.txt`; switch to
+- [x] **Quote template auto-selection** — default to `quote.txt`; switch to
       `venue-familiar-quote.txt` if venue has ≥1 delivered gig in DB; surface
-      "already booked" message if a confirmed gig exists on the inquiry date  `[copilot]`
+      "already booked" message if a confirmed gig exists on the inquiry date
 
 ---
 
