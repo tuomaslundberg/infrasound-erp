@@ -1,5 +1,6 @@
 .PHONY: up dev down down-dev reset-dev seed logs logs-dev shell-db shell-db-dev \
-        migrate migrate-dev etl-gigs import-legacy-gigs import-legacy-gigs-prod
+        migrate migrate-dev etl-gigs etl-enrich import-legacy-gigs import-legacy-gigs-prod \
+        enrich-dev enrich-prod
 
 # ---------------------------------------------------------------------------
 # Production environment  (uses .env → fi_infrasound)
@@ -72,6 +73,11 @@ migrate-dev:
 etl-gigs:
 	python cli/etl/extract_gigs.py $(FLAGS)
 
+# Regenerate db/seeds/legacy_enrich.sql from gig-info-*.txt files.
+# Run after etl-gigs.  Output is gitignored (contains customer PII).
+etl-enrich:
+	python cli/etl/enrich_gigs.py $(FLAGS)
+
 # Apply migration 001 then load the generated legacy seed into the dev DB.
 # Full workflow: make etl-gigs → make dev → make import-legacy-gigs
 import-legacy-gigs:
@@ -87,3 +93,16 @@ import-legacy-gigs-prod:
 	docker compose exec -T db \
 	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
 	  < db/seeds/legacy_gigs.sql
+
+# Load gig-info enrichment into dev DB (run after import-legacy-gigs).
+# Full workflow: make etl-enrich → make enrich-dev
+enrich-dev:
+	docker compose -p infrasound_dev exec -T db \
+	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+	  < db/seeds/legacy_enrich.sql
+
+# Load gig-info enrichment into prod DB (run after import-legacy-gigs-prod).
+enrich-prod:
+	docker compose exec -T db \
+	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+	  < db/seeds/legacy_enrich.sql

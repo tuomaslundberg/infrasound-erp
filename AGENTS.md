@@ -101,7 +101,10 @@ Infrastructure
 ├── /cli
 │   ├── process_inquiry.php
 │   ├── inquiry-template.yaml
-│   └── lib/
+│   ├── lib/
+│   └── etl/
+│       ├── extract_gigs.py       ← Phase 1: Excel → legacy_gigs.sql (INSERTs, IDs 1–9999)
+│       └── enrich_gigs.py        ← Phase 2: gig-info-*.txt → legacy_enrich.sql (UPDATEs)
 │
 ├── /db
 │   ├── init.sql
@@ -155,6 +158,12 @@ Accounting logic must:
 	•	Be deterministic
 	•	Be testable
 	•	Prefer correctness over performance
+
+Pending config table (prerequisite for invoicing module):
+	•	`km_rates (year INT PK, rate_cents_per_km INT NOT NULL)` — Finnish Verohallinto
+	  km-reimbursement rate, looked up by gig year at quote/invoice time.  Rate
+	  changes annually; invoiced rate may be set below the statutory maximum.
+	  Do NOT hardcode a rate anywhere in business logic; always look up from this table.
 
 ⸻
 
@@ -216,6 +225,43 @@ This ERP is expected to evolve into:
 	•	A data source for analytics and AI-assisted workflows
 
 Design choices should favor longevity and clarity over speed.
+
+⸻
+
+13. Legacy Data Migration (ETL Pipeline)
+
+Two-phase Python ETL under `cli/etl/`; run from the host, not inside Docker.
+
+Phase 1 — `extract_gigs.py`
+	•	Sources: `old-files/info/gigs-YYYY.xlsx` + `gig-invoicing.xlsx`
+	•	Output: `db/seeds/legacy_gigs.sql` — idempotent INSERTs, IDs 1–9999
+	•	Venue seeding: one placeholder venue row per gig (`name = city`; other
+	  fields NULL).  Deduplication is handled in Phase 2, not here.
+	•	Run: `make etl-gigs`
+
+Phase 2 — `enrich_gigs.py`
+	•	Sources: `old-files/*/gig-info-*.txt` + `old-files/*/price-calculator-*.xlsx`
+	•	Output: `db/seeds/legacy_enrich.sql` — idempotent UPDATEs against IDs 1–9999
+	•	Venue dedup: two-phase fuzzy matching (DB Phase 1 via optional pymysql;
+	  in-batch pairwise Phase 2 via difflib).  Threshold 0.88 for auto-match;
+	  0.60–0.88 candidates printed to stderr for manual review.
+	•	DB connectivity: reads `.env` then overlays `.env.dev` when present
+	  (picks up `ETL_DB_PORT=3307` for the dev stack's host-side port).
+	•	Run: `make etl-enrich`
+
+Apply seeds:
+	•	`make import-legacy-gigs` (dev) / `make import-legacy-gigs-prod` (prod)
+	•	`make enrich-dev` (dev) / `make enrich-prod` (prod)
+
+Full clean-build order:
+	1. `make etl-gigs`
+	2. `make etl-enrich`
+	3. `make dev` (or `make up`)
+	4. `make import-legacy-gigs` (or `-prod`)
+	5. `make enrich-dev` (or `enrich-prod`)
+
+Legacy ID range:  1–9999 (reserved exclusively for ETL-seeded rows).
+AUTO_INCREMENT reset to 10000 after seed load — ERP-created rows never collide.
 
 ⸻
 

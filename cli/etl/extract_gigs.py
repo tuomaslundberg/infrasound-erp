@@ -577,12 +577,13 @@ def main() -> int:
     contact_map:  dict[str, Contact]  = {}
 
     def get_or_create_venue(city: Optional[str]) -> Optional[int]:
-        if not city:
-            return None
-        key = city.strip().lower()
-        if key not in venue_map:
-            venue_map[key] = Venue(id=len(venue_map) + 1, city=city.strip())
-        return venue_map[key].id
+        # One venue row per gig — city-level deduplication is too coarse.
+        # enrich_gigs.py writes distinct venue details (name, address) per gig,
+        # so a shared venue_id causes later enrich writes to overwrite earlier ones,
+        # corrupting venue data for all gigs that shared the same city key.
+        venue_id = len(venue_map) + 1
+        venue_map[str(venue_id)] = Venue(id=venue_id, city=city.strip() if city else None)
+        return venue_id
 
     def get_or_create_customer(name: Optional[str], ctype: str) -> Optional[int]:
         if not name:

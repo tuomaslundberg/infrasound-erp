@@ -17,6 +17,8 @@ services:
   db:
     image: mariadb:10.11
     restart: always
+    ports:
+      - "127.0.0.1:3306:3306"   # localhost-only; allows ETL scripts to connect from host
     env_file:
       - .env
     volumes:

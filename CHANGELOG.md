@@ -8,6 +8,78 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `cli/etl/enrich_gigs.py` — UPDATE pass ETL script: parses all gig-info-*.txt and
+  price-calculator-*.xlsx files under `old-files/`, matches each to an existing legacy
+  gig record by (date, customer name), and emits `db/seeds/legacy_enrich.sql` with
+  idempotent UPDATE statements.
+  Populates:
+  - `venues.{name, address_line, postal_code, city, distance_from_turku_km}`
+  - `gigs.{car1_distance_km, car2_distance_km, other_travel_costs_cents,
+    order_description, quoted_price_cents, base_price_cents}` (price fields only where
+    currently NULL, preserving invoice data from extract_gigs.py)
+  - `gigs.{pricing_tier1, pricing_tier2, qty_ennakkoroudaus, qty_song_requests_extra,
+    qty_extra_performances, qty_background_music_h, qty_live_album, discount_cents}`
+    (from price-calculator; always overwritten)
+  - `contacts.{email, phone}` from 2021–2022 old-format files (legal entities only)
+  Three gig-info format generations handled (new / intermediate / old).
+  Two price-calculator format generations handled (new row-labelled / old columnar).
+  Files with unparseable dates written to `db/seeds/legacy_enrich_unmatched.txt`.
+  Design decisions:
+  - `other_travel_costs_cents`: 37.80 € was the real default train-ticket estimate
+    (Helsinki–Turku return, 1 person); imported as-is rather than skipped.
+  - Intermediate "Etäisyys Lipunkantajankadulta": Lipunkantajankatu 18, Runosmäki ≈
+    Turku centre; imported as `distance_from_turku_km` for analytics parity.
+  - Multi-option Tarjous (Finnish set labels): "kolme" (3×45 min) taken as canonical
+    default; numbered Tarjous blocks prefer HYVÄKSYTTY entry, then second option.
+  - Old price-calculator: 3-set price is in rows[3] col[28]; rows[4] is Perushinta.
+  - Song requests: intentionally skipped — schema not yet defined; source data stale.
+  Flags: `--dry-run` (SQL to stdout), `--stats` (counts only).
+
+### Fixed
+- `cli/etl/extract_gigs.py` — `get_or_create_venue` previously deduplicated venues by
+  city name, causing all gigs in the same city to share one `venue_id`. When
+  `enrich_gigs.py` updated the shared venue row with detailed data from one gig's
+  gig-info file, it silently overwrote the venue for all other gigs in that city (e.g.
+  every Tampere gig would end up showing the last-processed Tampere venue name/address).
+  Fixed by creating one venue row per gig; fuzzy deduplication is now handled by
+  `enrich_gigs.py` (see below).
+
+- `cli/etl/enrich_gigs.py` — venue fuzzy deduplication pass added after parsing:
+  two-phase approach using `difflib.SequenceMatcher` (stdlib, no new dependency).
+  Phase 1 (DB matching): each parsed venue with a non-placeholder name is compared
+  against all existing venue rows in the DB (loaded via optional pymysql connection;
+  gracefully skipped if unavailable).  City-only placeholder rows from extract_gigs.py
+  are excluded from matching.  Score ≥ 0.88 → auto-match (emit `UPDATE gigs SET
+  venue_id = X`; existing venue row filled with COALESCE-guarded field updates).
+  Phase 2 (in-batch dedup): remaining unmatched records are clustered pairwise; score
+  ≥ 0.88 → canonical elected by VenueData completeness; duplicates emit a venue_id
+  copy via subquery (`UPDATE gigs SET venue_id = (SELECT g2.venue_id ... canonical)`).
+  Near-misses (0.60–0.88) printed to stderr for manual review.
+  Result: 40 in-batch venues auto-deduped on first run; venue-familiar template
+  selection in `quote.php` will now work for any venue the band has played at before.
+
+- `cli/etl/enrich_gigs.py` — fixed venue name not written when DB-matched to a
+  city-only placeholder row (`name = city` pattern seeded by `extract_gigs.py`).
+  A plain `COALESCE(name, …)` does not fire when `name` is non-NULL (i.e. already
+  set to the city string), so the real venue name was silently dropped.  Changed to
+  `COALESCE(NULLIF(name, city), …)` in the `matched_venue_id` branch: `NULLIF` turns
+  the city-sentinel back to NULL, allowing COALESCE to write the real name.  Genuine
+  venue names (name ≠ city) are unaffected.
+
+- `cli/etl/_try_connect_db` — dev stack credentials and port (3307) are now picked up
+  automatically by merging `.env.dev` on top of `.env` when present.  `ETL_DB_PORT`
+  added to `.env.dev` to cover the host-side port mapping in `docker-compose.dev.yml`.
+
+- `Makefile` targets: `etl-enrich` (regenerate `legacy_enrich.sql` from text files);
+  `enrich-dev` / `enrich-prod` (load enrichment SQL into dev / prod DB).
+  Full ETL workflow: `make etl-gigs && make etl-enrich` → `make dev` →
+  `make import-legacy-gigs && make enrich-dev`.
+- `.gitignore` — `db/seeds/legacy_enrich*.sql` and `db/seeds/legacy_enrich*.txt`
+  (contain customer PII; regenerate with `make etl-enrich`).
+
+
+
+### Added
 - `src/modules/gigs/list.php` — status filter (button group, `?status=`), sortable
   column headers with ▲/▼ indicator (`?sort=&dir=`), customer name search via
   `LIKE` bound parameter (`?q=`), and pagination at 25 rows/page (`?page=N`) with

@@ -133,6 +133,11 @@ At this point the ERP should be usable in place of old workflows.
 
 ## Phase 6 — Invoicing
 
+- [ ] **Schema: `km_rates`** — `(year INT PRIMARY KEY, rate_cents_per_km INT NOT NULL)`;
+      Finnish Verohallinto km-reimbursement rate looked up by gig year at quote and
+      invoice time.  Never hardcode a rate in business logic.  Seed with historical
+      rates back to the earliest gig year in the DB.  Prerequisite for itemised
+      invoice generation.  `[copilot]`
 - [ ] **Schema: `outgoing_invoices`, `incoming_invoices`** — outgoing ties to a
       `gig_id`; fields include invoice number, issue date, due date, status
       (draft/sent/paid/overdue), amount in eurocents  `[copilot]`
@@ -174,6 +179,12 @@ good `[copilot]` candidates when clearly specified.
 - [ ] **User creation dashboard** — web UI for creating/managing user accounts
       (currently requires manual SQL); low priority but needed for testing
       role-based access without writing SQL  `[copilot]`
+- [ ] **Additional gig filters** — filter gigs by time (both event and first inquiry date) and channel enum  `[copilot]`
+- [ ] **Venue edit UI** — form to edit `name`, `address_line`, `postal_code`, `city`,
+      `distance_from_turku_km`, `notes` on a venue row; accessible from gig detail and
+      a standalone venue list.  Needed for correcting ETL-seeded placeholder rows
+      (e.g. `name = city`, `name = 'EI TIEDOSSA'`) and for managing venues going
+      forward without requiring SQL.  `[copilot]`
 - [ ] _(add items here)_
 
 ---
