@@ -103,7 +103,8 @@ CREATE TABLE IF NOT EXISTS gigs (
     contact_id              INT UNSIGNED             DEFAULT NULL,
     -- Venue may be unknown at inquiry stage
     venue_id                INT UNSIGNED             DEFAULT NULL,
-    gig_date                DATE            NOT NULL,
+    -- NULL allowed: inquiry-status gigs may arrive without a date specified
+    gig_date                DATE                     DEFAULT NULL,
     status                  ENUM(
                                 'inquiry',      -- received, not yet quoted
                                 'quoted',       -- quote sent, awaiting reply

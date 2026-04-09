@@ -67,7 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($contactFirstName === '') $errors[] = 'Contact first name is required.';
     if ($contactLastName === '')  $errors[] = 'Contact last name is required.';
     if ($venueName === '')    $errors[] = 'Venue name is required.';
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $gigDate)) $errors[] = 'Gig date must be YYYY-MM-DD.';
+    if ($gigDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $gigDate)) $errors[] = 'Gig date must be YYYY-MM-DD.';
+    $gigDate = $gigDate ?: null;
     $validChannels = ['mail','buukkaa_bandi','saturday_band','venuu','haamusiikki',
                        'voodoolive','ohjelmanaiset','palkkaamuusikko','facebook','whatsapp','phone','other'];
     if (!in_array($channel, $validChannels, true)) $errors[] = 'Invalid channel.';
@@ -163,9 +164,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
         } else {
-            $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
-                ->execute([$customerName, 'person']);
-            $customerId = (int)$pdo->lastInsertId();
+            // Match existing customer by name; INSERT only if new.
+            $custRow = $pdo->prepare(
+                'SELECT id FROM customers WHERE LOWER(name) = LOWER(?) AND deleted_at IS NULL LIMIT 1'
+            );
+            $custRow->execute([$customerName]);
+            $existingCustomer = $custRow->fetch(PDO::FETCH_ASSOC);
+            if ($existingCustomer) {
+                $customerId = (int)$existingCustomer['id'];
+            } else {
+                $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
+                    ->execute([$customerName, 'person']);
+                $customerId = (int)$pdo->lastInsertId();
+            }
 
             $pdo->prepare('INSERT INTO contacts (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)')
                 ->execute([$contactFirstName, $contactLastName, $contactEmail, $contactPhone]);

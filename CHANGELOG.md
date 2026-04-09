@@ -8,6 +8,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `src/assets/mail-templates/fi/direct/{weddings,companies,other}/no-date-inquiry.txt` —
+  new template for inquiries that don't include a date; politely asks the customer for
+  the event date before quoting
+- `db/migrations/005_nullable_gig_date.sql` — allows `gig_date` to be NULL for
+  inquiry-status gigs where the customer has not yet specified a date
+
+### Changed
+- `src/modules/gigs/quote.php` — company quotes now pass net price (gross ÷ 1.135)
+  to `TemplateRenderer`; consumer (wedding/other) templates continue to receive gross;
+  fixes mismatch with "ei sis. ALV" wording in company template
+- `src/modules/gigs/quote.php` — `no-date-inquiry` added to available template types
+- `cli/lib/TemplateRenderer.php` — docblock updated: price parameter is now caller's
+  responsibility to pass gross or net as appropriate
+- `src/modules/agent/process_inquiry.php` — customer and venue lookup now matches
+  existing DB rows by name before INSERTing; eliminates duplicate entities on
+  repeated agent-processed inquiries; falls back to stored venue distance if geocoding
+  returns null
+- `src/modules/gigs/form.php` — new-gig path now matches existing customer by name
+  before INSERTing; gig date validation allows null (owner fills before quoting)
+- `src/modules/gigs/list.php` — null gig_date rendered as "—" instead of blank
+- `db/schema/core.sql` — `gig_date` column updated to `DATE DEFAULT NULL`
+
+### Added
 - `cli/etl/enrich_gigs.py` — UPDATE pass ETL script: parses all gig-info-*.txt and
   price-calculator-*.xlsx files under `old-files/`, matches each to an existing legacy
   gig record by (date, customer name), and emits `db/seeds/legacy_enrich.sql` with

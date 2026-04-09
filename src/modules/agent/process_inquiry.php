@@ -82,9 +82,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
-            ->execute([$customerName ?: 'Unknown', 'person']);
-        $customerId = (int)$pdo->lastInsertId();
+        // Match existing customer by name; INSERT only if new.
+        $custRow = $pdo->prepare(
+            'SELECT id FROM customers WHERE LOWER(name) = LOWER(?) AND deleted_at IS NULL LIMIT 1'
+        );
+        $custRow->execute([$customerName ?: 'Unknown']);
+        $existingCustomer = $custRow->fetch(PDO::FETCH_ASSOC);
+        if ($existingCustomer) {
+            $customerId = (int)$existingCustomer['id'];
+        } else {
+            $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
+                ->execute([$customerName ?: 'Unknown', 'person']);
+            $customerId = (int)$pdo->lastInsertId();
+        }
 
         $pdo->prepare('INSERT INTO contacts (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)')
             ->execute([$contactFirstName, $contactLastName, $contactEmail, $contactPhone]);
@@ -93,11 +103,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare('INSERT INTO customer_contacts (customer_id, contact_id, is_primary) VALUES (?, ?, 1)')
             ->execute([$customerId, $contactId]);
 
-        $pdo->prepare(
-            'INSERT INTO venues (name, address_line, city, distance_from_turku_km)
-             VALUES (?, ?, ?, ?)'
-        )->execute([$venueName ?: 'Unknown', $venueAddress, $venueCity, $distFromTurku]);
-        $venueId = (int)$pdo->lastInsertId();
+        // Match existing venue by name + city; INSERT only if new.
+        $venueRow = $pdo->prepare(
+            'SELECT id, distance_from_turku_km FROM venues
+             WHERE  LOWER(name) = LOWER(?)
+             AND    (? IS NULL OR city IS NULL OR LOWER(city) = LOWER(?))
+             AND    deleted_at IS NULL
+             LIMIT  1'
+        );
+        $venueRow->execute([$venueName ?: 'Unknown', $venueCity, $venueCity]);
+        $existingVenue = $venueRow->fetch(PDO::FETCH_ASSOC);
+        if ($existingVenue) {
+            $venueId = (int)$existingVenue['id'];
+            // Fall back to stored distance if geocoding produced nothing.
+            if ($distFromTurku === null && $existingVenue['distance_from_turku_km']) {
+                $distFromTurku = (float)$existingVenue['distance_from_turku_km'];
+            }
+        } else {
+            $pdo->prepare(
+                'INSERT INTO venues (name, address_line, city, distance_from_turku_km)
+                 VALUES (?, ?, ?, ?)'
+            )->execute([$venueName ?: 'Unknown', $venueAddress, $venueCity, $distFromTurku]);
+            $venueId = (int)$pdo->lastInsertId();
+        }
 
         $pdo->prepare(
             "INSERT INTO gigs

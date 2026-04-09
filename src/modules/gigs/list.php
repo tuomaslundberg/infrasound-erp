@@ -182,7 +182,7 @@ render_layout('Gigs', function () use ($gigs, $statusColour, $status, $sort, $di
       <tbody>
         <?php foreach ($gigs as $g): ?>
         <tr>
-          <td class="text-nowrap"><?= htmlspecialchars($g['gig_date']) ?></td>
+          <td class="text-nowrap"><?= $g['gig_date'] ? htmlspecialchars($g['gig_date']) : '<span class="text-muted">—</span>' ?></td>
           <td><?= htmlspecialchars($g['customer_name']) ?></td>
           <td>
             <?php if ($g['venue_name']): ?>

@@ -33,7 +33,7 @@ if (!$gig) {
 // Discover available template types for this gig's channel + customer_type
 $renderer  = new TemplateRenderer();
 $allTypes  = [
-    'quote', 'venue-familiar-quote', 'bidding', 'sorry-were-booked',
+    'quote', 'venue-familiar-quote', 'no-date-inquiry', 'bidding', 'sorry-were-booked',
     'thank-you', 'declined-offer-response',
     'order-confirmation', 'venue-familiar-order-confirmation', 'signature',
 ];
@@ -86,10 +86,15 @@ $data = [
     'contact'  => ['name' => trim($gig['contact_first_name'] . ' ' . $gig['contact_last_name'])],
 ];
 
+// Company templates show net price ("ei sis. ALV"); consumer templates show gross.
+$priceForTemplate = $gig['customer_type'] === 'company'
+    ? $grossTotal / 1.135
+    : $grossTotal;
+
 $rendered   = null;
 $renderError = null;
 try {
-    $rendered = $renderer->render($data, $grossTotal, $selectedType);
+    $rendered = $renderer->render($data, $priceForTemplate, $selectedType);
 } catch (RuntimeException $e) {
     $renderError = $e->getMessage();
 }

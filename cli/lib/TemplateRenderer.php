@@ -13,7 +13,7 @@ declare(strict_types=1);
  *
  * Substitutions applied:
  *   [ASIAKAS]    → greeting name (first name of contact, or customer name for companies)
- *   hintaan .    → hintaan X XXX,XX €.   (Finnish decimal format, inc. VAT)
+ *   hintaan .    → hintaan X XXX,XX €.   (Finnish decimal format; caller passes net or gross as appropriate)
  */
 class TemplateRenderer
 {
@@ -27,7 +27,7 @@ class TemplateRenderer
 
     /**
      * @param array  $data         Normalised inquiry data from InquiryParser
-     * @param float  $grossTotal   Price to insert (inc. VAT), in euros
+     * @param float  $price        Price to display in template (caller determines gross vs net)
      * @param string $templateType e.g. 'quote', 'venue-familiar-quote', 'sorry-were-booked'
      * @return string Filled template text
      * @throws RuntimeException if template file not found
