@@ -62,6 +62,13 @@ db/
 
 ---
 
+## Task tracking
+
+- `~/iCloud/context/todos.md` is the canonical task list across all projects — read and update it as work progresses
+- `TODO.md` in the project root is a **read-only legacy reference** — do not edit or treat as current
+
+---
+
 ## What not to do
 
 - Do not expose database errors or stack traces to the browser

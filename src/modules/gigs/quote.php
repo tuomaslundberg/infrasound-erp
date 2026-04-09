@@ -129,7 +129,7 @@ render_layout('Quote — ' . $gig['customer_name'], function ()
       <div class="card mb-3">
         <div class="card-header">Gig</div>
         <div class="card-body small">
-          <p class="mb-1"><strong><?= htmlspecialchars($gig['gig_date']) ?></strong></p>
+          <p class="mb-1"><strong><?= $gig['gig_date'] ? htmlspecialchars($gig['gig_date']) : '<span class="text-muted fw-normal">No date</span>' ?></strong></p>
           <?php if ($gig['venue_name']): ?>
           <p class="mb-1 text-muted"><?= htmlspecialchars($gig['venue_name']) ?><?= $gig['venue_city'] ? ', ' . htmlspecialchars($gig['venue_city']) : '' ?></p>
           <?php endif; ?>

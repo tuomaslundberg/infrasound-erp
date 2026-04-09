@@ -81,7 +81,7 @@ Infrastructure
 ├── CLAUDE.md
 ├── README.md
 ├── CHANGELOG.md
-├── TODO.md
+├── TODO.md                  ← read-only legacy reference; superseded by ~/iCloud/context/todos.md
 │
 ├── /src
 │   ├── index.php

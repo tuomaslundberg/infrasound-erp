@@ -130,7 +130,7 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
         <div class="card-body">
           <dl class="row mb-0">
             <dt class="col-sm-4">Date</dt>
-            <dd class="col-sm-8"><?= htmlspecialchars($gig['gig_date']) ?></dd>
+            <dd class="col-sm-8"><?= $gig['gig_date'] ? htmlspecialchars($gig['gig_date']) : '<span class="text-muted">—</span>' ?></dd>
 
             <dt class="col-sm-4">Type</dt>
             <dd class="col-sm-8"><?= htmlspecialchars($gig['customer_type']) ?></dd>
