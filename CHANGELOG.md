@@ -8,6 +8,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `db/migrations/006_users_email.sql` — adds nullable `email VARCHAR(255)` column to
+  `users`; prerequisite for musician seeding and future musician portal auth.
+- `db/migrations/007_gig_personnel_schema.sql` — two changes to `gig_personnel`:
+  (1) renames `role` ENUM values from person-nouns (`vocalist`, `guitarist`, …) to
+  instrument/function nouns (`vocals`, `guitar`, `bass`, `drums`, `keyboards`,
+  `sound_engineering`, `other`), matching the invoicing ETL spec; adds
+  `sound_engineering` for Toni / Valtteri Alanen slots.
+  (2) makes `fee_cents` nullable: NULL = partner fee not tracked in invoicing (settled
+  separately); 0 = explicitly confirmed zero; >0 = eurocent amount.
+  Migration includes commented-out UPDATE block for remapping any pre-existing rows.
+- `db/seeds/musicians.sql` — idempotent INSERT IGNORE seed for all 19 musicians on
+  the band roster (as per `cli/etl/INVOICING_ETL_SPEC.md`); uses `'!'` as
+  password_hash sentinel (locked account, cannot authenticate via password flow);
+  placeholder email addresses in the `musicians.infrasound.fi` subdomain.
+  Partners (Tuomas, Toni, Joni, Lauri) seeded as musicians; INSERT IGNORE preserves
+  any existing higher-privilege accounts.
+
+### Changed
+- `src/modules/gigs/personnel_add.php` — `$validRoles` updated to new ENUM values.
+- `src/modules/gigs/detail.php` — role `<option>` values and role display in the
+  personnel table updated to new ENUM values; `str_replace('_', ' ', …)` applied for
+  readable display of `sound_engineering`; `fee_cents` display now null-safe
+  (renders `—` for NULL rather than dividing by zero).
+
+### Added
 - `src/assets/mail-templates/fi/direct/{weddings,companies,other}/no-date-inquiry.txt` —
   new template for inquiries that don't include a date; politely asks the customer for
   the event date before quoting

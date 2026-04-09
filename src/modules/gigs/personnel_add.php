@@ -12,7 +12,7 @@ $role   = $_POST['role'] ?? '';
 $feeRaw = str_replace(',', '.', $_POST['fee'] ?? '0');
 $feeCents = (int)round((float)$feeRaw * 100);
 
-$validRoles = ['vocalist', 'guitarist', 'bassist', 'drummer', 'keyboardist', 'other'];
+$validRoles = ['vocals', 'guitar', 'bass', 'drums', 'keyboards', 'sound_engineering', 'other'];
 
 if (!$gigId || !$userId || !in_array($role, $validRoles, true) || $feeCents < 0 || $feeCents > 1_000_000_00) {
     header('Location: /gigs/' . $gigId . '?error=invalid_input');

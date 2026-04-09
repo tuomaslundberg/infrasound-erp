@@ -296,8 +296,8 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
                 <?php foreach ($personnel as $p): ?>
                 <tr>
                   <td><?= htmlspecialchars($p['username']) ?></td>
-                  <td><?= htmlspecialchars($p['role']) ?></td>
-                  <td><?= number_format($p['fee_cents'] / 100, 2, ',', ' ') ?> €</td>
+                  <td><?= htmlspecialchars(str_replace('_', ' ', $p['role'])) ?></td>
+                  <td><?= $p['fee_cents'] !== null ? number_format($p['fee_cents'] / 100, 2, ',', ' ') . ' €' : '—' ?></td>
                   <td><?= $p['confirmed_at'] ? htmlspecialchars($p['confirmed_at']) : '—' ?></td>
                   <td>
                     <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/personnel/<?= (int)$p['user_id'] ?>/remove"
@@ -332,11 +332,12 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
               <label class="form-label form-label-sm mb-1">Role</label>
               <select name="role" class="form-select form-select-sm" required>
                 <option value="">— select —</option>
-                <option value="vocalist">Vocalist</option>
-                <option value="guitarist">Guitarist</option>
-                <option value="bassist">Bassist</option>
-                <option value="drummer">Drummer</option>
-                <option value="keyboardist">Keyboardist</option>
+                <option value="vocals">Vocals</option>
+                <option value="guitar">Guitar</option>
+                <option value="bass">Bass</option>
+                <option value="drums">Drums</option>
+                <option value="keyboards">Keyboards</option>
+                <option value="sound_engineering">Sound engineering</option>
                 <option value="other">Other</option>
               </select>
             </div>

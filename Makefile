@@ -1,4 +1,5 @@
-.PHONY: up dev down down-dev reset-dev seed logs logs-dev shell-db shell-db-dev \
+.PHONY: up dev down down-dev reset-dev seed seed-musicians seed-musicians-prod \
+        logs logs-dev shell-db shell-db-dev \
         migrate migrate-dev etl-gigs etl-enrich import-legacy-gigs import-legacy-gigs-prod \
         enrich-dev enrich-prod
 
@@ -42,6 +43,19 @@ seed:
 	docker compose -p infrasound_dev exec -T db \
 	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
 	  < db/seeds/dev.sql
+
+# Seed musician user accounts into the dev DB.
+# Prerequisites: migrations 006 and 007 applied (make migrate-dev FILE=...).
+seed-musicians:
+	docker compose -p infrasound_dev exec -T db \
+	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+	  < db/seeds/musicians.sql
+
+# Seed musician user accounts into the prod DB.
+seed-musicians-prod:
+	docker compose exec -T db \
+	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+	  < db/seeds/musicians.sql
 
 shell-db-dev:
 	docker compose -p infrasound_dev exec db \
