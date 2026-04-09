@@ -75,7 +75,13 @@ CREATE TABLE IF NOT EXISTS venues (
     country                 CHAR(2)         NOT NULL DEFAULT 'FI',
     -- Straight-line distance from Turku city centre (used for distance premium)
     distance_from_turku_km  DECIMAL(7,1),
+    -- Geocoordinates (Nominatim; cached for TravelCalculator multi-waypoint routing)
+    lat                     DECIMAL(9,6)             DEFAULT NULL,
+    lng                     DECIMAL(9,6)             DEFAULT NULL,
     notes                   TEXT,
+    -- Ferry: set once per island venue; TravelCalculator bills 2 vehicles × 2 ways
+    requires_ferry           TINYINT(1)      NOT NULL DEFAULT 0,
+    ferry_cost_estimate_cents INT                     DEFAULT NULL,
     created_at              DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at              DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at              DATETIME                 DEFAULT NULL,
@@ -167,21 +173,27 @@ CREATE TABLE IF NOT EXISTS gigs (
 -- See migration 004_gig_personnel.sql.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig_personnel (
-    id           INT UNSIGNED   NOT NULL AUTO_INCREMENT,
-    gig_id       INT UNSIGNED   NOT NULL,
-    user_id      INT UNSIGNED   NOT NULL,
-    role         ENUM(
-                     'vocalist',
-                     'guitarist',
-                     'bassist',
-                     'drummer',
-                     'keyboardist',
-                     'other'
-                 ) NOT NULL DEFAULT 'other',
-    fee_cents    INT            NOT NULL DEFAULT 0,
-    confirmed_at DATETIME                DEFAULT NULL,
-    created_at   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id                 INT UNSIGNED   NOT NULL AUTO_INCREMENT,
+    gig_id             INT UNSIGNED   NOT NULL,
+    user_id            INT UNSIGNED   NOT NULL,
+    role               ENUM(
+                           'vocals',
+                           'guitar',
+                           'bass',
+                           'drums',
+                           'keyboards',
+                           'sound_engineering',
+                           'other'
+                       ) NOT NULL DEFAULT 'other',
+    fee_cents          INT                     DEFAULT NULL,
+    -- transport_override: NULL = use users.transport_mode default
+    --   passenger  = rides Car 2 pickup (Valtteri typical case when car_owner)
+    --   local      = skip out-of-town pickup (Lauri already in Turku)
+    --   car_owner  = drives own car this gig (warn; not billed in Car 1/2)
+    transport_override ENUM('car_owner','passenger','local') DEFAULT NULL,
+    confirmed_at       DATETIME                DEFAULT NULL,
+    created_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_gig_user (gig_id, user_id),
     CONSTRAINT fk_gp_gig  FOREIGN KEY (gig_id)  REFERENCES gigs  (id),
@@ -207,6 +219,57 @@ CREATE TABLE IF NOT EXISTS song_requests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
+-- songs
+-- Global repertoire library. Deduped by (title, artist) unique key.
+-- Application queries use LOWER() on both sides for case-insensitive matching.
+-- See migration 008_setlists.sql.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS songs (
+    id          INT UNSIGNED    NOT NULL AUTO_INCREMENT,
+    title       VARCHAR(255)    NOT NULL,
+    artist      VARCHAR(255)    NOT NULL,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at  DATETIME                 DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_song_title_artist (title, artist)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- setlists
+-- One named set per gig (Set 1, Set 2, …). Unique on (gig_id, set_number).
+-- No soft-delete: empty sets are removed entirely on last song deletion.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS setlists (
+    id          INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+    gig_id      INT UNSIGNED     NOT NULL,
+    set_number  TINYINT UNSIGNED NOT NULL,
+    name        VARCHAR(100)              DEFAULT NULL,
+    created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_setlist_gig_set (gig_id, set_number),
+    CONSTRAINT fk_sl_gig FOREIGN KEY (gig_id) REFERENCES gigs (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- setlist_songs
+-- Ordered junction between setlists and songs.
+-- sort_order: ascending; gaps allowed (swap-based reorder).
+-- No unique key on (setlist_id, song_id): same song may repeat in a set.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS setlist_songs (
+    id          INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+    setlist_id  INT UNSIGNED     NOT NULL,
+    song_id     INT UNSIGNED     NOT NULL,
+    sort_order  TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    notes       VARCHAR(255)              DEFAULT NULL,
+    created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_ss_setlist FOREIGN KEY (setlist_id) REFERENCES setlists (id),
+    CONSTRAINT fk_ss_song    FOREIGN KEY (song_id)    REFERENCES songs     (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
 -- users
 -- Session-based authentication. Roles in ascending order:
 --   musician < owner < admin < developer
@@ -215,19 +278,26 @@ CREATE TABLE IF NOT EXISTS song_requests (
 --   php -r "echo password_hash('password', PASSWORD_DEFAULT);"
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
-    id            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-    username      VARCHAR(64)   NOT NULL,
-    password_hash VARCHAR(255)  NOT NULL,
-    role          ENUM(
-                      'developer',
-                      'admin',
-                      'owner',
-                      'musician',
-                      'guest'
-                  ) NOT NULL DEFAULT 'musician',
-    created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at    DATETIME               DEFAULT NULL,
+    id             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    username       VARCHAR(64)   NOT NULL,
+    email          VARCHAR(255)           DEFAULT NULL,
+    home_address   VARCHAR(255)           DEFAULT NULL,
+    home_lat       DECIMAL(9,6)           DEFAULT NULL,
+    home_lng       DECIMAL(9,6)           DEFAULT NULL,
+    -- transport_mode: car_owner = has own vehicle; passenger = always needs a lift
+    transport_mode ENUM('car_owner','passenger','public_transport')
+                                 NOT NULL DEFAULT 'passenger',
+    password_hash  VARCHAR(255)  NOT NULL,
+    role           ENUM(
+                       'developer',
+                       'admin',
+                       'owner',
+                       'musician',
+                       'guest'
+                   ) NOT NULL DEFAULT 'musician',
+    created_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at     DATETIME               DEFAULT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

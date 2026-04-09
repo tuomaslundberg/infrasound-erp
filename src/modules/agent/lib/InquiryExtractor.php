@@ -38,7 +38,10 @@ class InquiryExtractor
                 'properties' => [
                     'customer_name'      => [
                         'type'        => ['string', 'null'],
-                        'description' => 'Legal or full name of the customer (company or person)',
+                        'description' => 'Legal or full name of the customer (company or person) '
+                                       . 'who is hiring the band. This is NOT the venue name. '
+                                       . 'If the inquiry only mentions a venue and a date but no '
+                                       . 'customer/company name, return null.',
                     ],
                     'customer_type'      => [
                         'type'        => ['string', 'null'],
@@ -53,7 +56,9 @@ class InquiryExtractor
                     ],
                     'venue_name'         => [
                         'type'        => ['string', 'null'],
-                        'description' => 'Name of the venue or location',
+                        'description' => 'Name of the venue or location where the event takes place. '
+                                       . 'If the inquiry mentions a named place (restaurant, hall, estate, etc.), '
+                                       . 'that is the venue — even if no explicit customer name is given.',
                     ],
                     'venue_address'      => [
                         'type'        => ['string', 'null'],
@@ -108,7 +113,15 @@ class InquiryExtractor
             'messages'    => [[
                 'role'    => 'user',
                 'content' => "Extract the gig inquiry details from the following text. "
-                           . "The text may be in Finnish or English.\n\n---\n{$rawText}\n---",
+                           . "The text may be in Finnish or English.\n\n"
+                           . "Important rules:\n"
+                           . "- Use null for any field you cannot reliably determine. "
+                           . "Never use placeholder strings like '<UNKNOWN>', 'unknown', or 'N/A'.\n"
+                           . "- customer_name is the person or company HIRING the band, not the venue.\n"
+                           . "- venue_name is the physical location where the event takes place. "
+                           . "If a named place is mentioned (restaurant, hall, estate, etc.), put it in venue_name.\n"
+                           . "- contact_first_name / contact_last_name is whoever signed or sent the message.\n\n"
+                           . "---\n{$rawText}\n---",
             ]],
         ]);
 

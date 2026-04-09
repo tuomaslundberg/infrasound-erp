@@ -100,9 +100,16 @@ The following previously-flagged items are now confirmed and updated in the spec
 Produces `db/seeds/legacy_invoicing.sql` with two classes of statements:
 1. `UPDATE gigs SET quoted_price_cents = <keikkapalkkio_cents>` — for all delivered gigs
    where keikkapalkkio > 0. Do NOT update the three zero-fee gigs listed in the spec.
-2. `INSERT INTO gig_personnel …` — one row per musician per gig, derived from fee columns
-   and documented exceptions. Match invoicing rows to DB gigs by (date, customer_name)
-   fuzzy match (same `difflib.SequenceMatcher` approach as `enrich_gigs.py`).
+2. `INSERT INTO gig_personnel …` — one row per musician per gig. Lineup source depends
+   on whether the gig has an invoicing row:
+   - **Has invoicing row (delivered gig)**: derive presence from fee columns + documented
+     exceptions. Partner slots always inserted (fee_cents = NULL); external slots inserted
+     where fee > 0.
+   - **No invoicing row (future / ongoing quote)**: `gig-invoicing.xlsx` has no data for
+     these. Derive lineup entirely from the Google Calendar event description (parenthetical
+     2024 format or structured HTML 2025 format — see spec). The legacy seed includes future
+     gigs from `extract_gigs.py`, so this case will arise and must be handled in the same
+     pass.
 
 Full details, column map, matching strategy, and all personnel exceptions are in
 `cli/etl/INVOICING_ETL_SPEC.md`. Read it before writing a line of code.

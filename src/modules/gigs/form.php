@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $validStatuses = ['inquiry', 'quoted', 'confirmed', 'delivered', 'cancelled', 'declined'];
     if ($customerName === '')  $errors[] = 'Customer name is required.';
     if ($contactFirstName === '') $errors[] = 'Contact first name is required.';
-    if ($contactLastName === '')  $errors[] = 'Contact last name is required.';
+    // Last name is optional — single-name contacts and AI-extracted inquiries may omit it.
     if ($venueName === '')    $errors[] = 'Venue name is required.';
     if ($gigDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $gigDate)) $errors[] = 'Gig date must be YYYY-MM-DD.';
     $gigDate = $gigDate ?: null;
@@ -375,8 +375,8 @@ render_layout($pageTitle, function () use ($errors, $v, $chk, $isEdit, $gigId, $
               <input type="text" name="contact_first_name" class="form-control" value="<?= $v('contact_first_name') ?>" required>
             </div>
             <div class="col-sm-6">
-              <label class="form-label">Last name <span class="text-danger">*</span></label>
-              <input type="text" name="contact_last_name" class="form-control" value="<?= $v('contact_last_name') ?>" required>
+              <label class="form-label">Last name</label>
+              <input type="text" name="contact_last_name" class="form-control" value="<?= $v('contact_last_name') ?>">
             </div>
             <div class="col-sm-6">
               <label class="form-label">Email</label>

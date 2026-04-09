@@ -29,6 +29,10 @@ $routes = [
     ['#^/gigs/(\d+)/personnel$#',               'modules/gigs/personnel_add.php',     'owner'],
     ['#^/gigs/(\d+)/personnel/(\d+)/remove$#',  'modules/gigs/personnel_remove.php',  'owner'],
     ['#^/gigs/(\d+)/notes$#',           'modules/gigs/notes.php',         'owner'],
+    ['#^/gigs/(\d+)/travel/calculate$#',                   'modules/gigs/travel_calculate.php',    'owner'],
+    ['#^/gigs/(\d+)/setlist/songs$#',                      'modules/gigs/setlist_song_add.php',    'owner'],
+    ['#^/gigs/(\d+)/setlist/songs/(\d+)/remove$#',         'modules/gigs/setlist_song_remove.php', 'owner'],
+    ['#^/gigs/(\d+)/setlist/songs/(\d+)/move/(up|down)$#', 'modules/gigs/setlist_song_move.php',   'owner'],
 
     // Agent service
     ['#^/agent/process-inquiry$#',      'modules/agent/process_inquiry.php', 'owner'],

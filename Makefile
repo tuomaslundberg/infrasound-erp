@@ -1,4 +1,5 @@
 .PHONY: up dev down down-dev reset-dev seed seed-musicians seed-musicians-prod \
+        seed-musician-addresses seed-musician-addresses-prod geocode-musicians \
         logs logs-dev shell-db shell-db-dev \
         migrate migrate-dev etl-gigs etl-enrich import-legacy-gigs import-legacy-gigs-prod \
         enrich-dev enrich-prod
@@ -56,6 +57,28 @@ seed-musicians-prod:
 	docker compose exec -T db \
 	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
 	  < db/seeds/musicians.sql
+
+# Seed musician home addresses and transport modes into the dev DB.
+# Prerequisites: migration 010 applied.
+seed-musician-addresses:
+	docker compose -p infrasound_dev exec -T db \
+	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+	  < db/seeds/musician_addresses.sql
+
+# Seed musician home addresses into the prod DB.
+seed-musician-addresses-prod:
+	docker compose exec -T db \
+	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
+	  < db/seeds/musician_addresses.sql
+
+# Geocode musician home addresses → populate home_lat/home_lng in users (dev DB).
+# Run after seed-musician-addresses. Rate-limited to 1 req/s (Nominatim ToS).
+geocode-musicians:
+	docker compose -p infrasound_dev exec php php /var/www/cli/geocode_musicians.php
+
+# Geocode musician home addresses → populate home_lat/home_lng in users (prod DB).
+geocode-musicians-prod:
+	docker compose exec php php /var/www/cli/geocode_musicians.php
 
 shell-db-dev:
 	docker compose -p infrasound_dev exec db \

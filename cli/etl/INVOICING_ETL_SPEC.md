@@ -186,6 +186,21 @@ On all Valtteri gigs: Toni absent → insert gig_personnel row for Valtteri
 
 ---
 
+## Lineup source authority by gig status
+
+| Gig status | Primary lineup source | Notes |
+|---|---|---|
+| Delivered (has invoicing row) | `gig-invoicing.xlsx` fee columns | Calendar used only to resolve exceptions / stand-ins |
+| Future / ongoing quote (no invoicing row) | Google Calendar | Only source; invoicing data does not exist yet |
+
+This distinction matters because `extract_gigs.py` seeds *all* gigs — delivered, confirmed,
+and quoted — but `gig-invoicing.xlsx` only covers delivered gigs. Future gigs imported via
+the legacy seed will have no invoicing row, so their `gig_personnel` rows must come entirely
+from the calendar. The ETL script should handle both cases in the same pass: if a gig has
+an invoicing match, use fee columns; if not, fall back to the calendar event description.
+
+---
+
 ## Google Calendar — parsing strategy
 
 From 2024: parenthetical in event SUMMARY indicates non-default external musician:

@@ -8,6 +8,66 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `db/migrations/010_travel_calculator_schema.sql` — schema additions for route-based travel
+  cost calculation: `users` gains `home_address`, `home_lat/lng`, `transport_mode`;
+  `venues` gains `lat/lng`, `requires_ferry`, `ferry_cost_estimate_cents`;
+  `gig_personnel` gains `transport_override`
+- `db/seeds/musician_addresses.sql` — sets `home_address` and `transport_mode` for the 8
+  core musicians; lat/lng populated separately via `make geocode-musicians`
+- `cli/geocode_musicians.php` — one-time geocoding script; reads `home_address` from users,
+  queries Nominatim, updates `home_lat/home_lng`; rate-limited to 1 req/s (Nominatim ToS)
+- `cli/lib/RoutingHelper.php` — shared geocoding and routing primitives: `geocode()` (Nominatim)
+  and `waypointRouteKm()` (OSRM multi-waypoint); extracted from GeocodingHelper and generalised
+- `cli/lib/TravelCalculator.php` — computes Car 1 and Car 2 route-based km from assigned
+  personnel home addresses; role-based car allocation; trailer waypoint at Opettajankatu 9;
+  ferry cost support; graceful fallback on missing coords
+- `src/modules/gigs/travel_calculate.php` — POST handler for "Recalculate travel" button;
+  runs TravelCalculator against assigned personnel and updates gig travel fields
+
+### Changed
+- `src/modules/agent/lib/GeocodingHelper.php` — refactored to delegate to RoutingHelper;
+  new `geocodeVenue()` method returns `{lat, lng, distance_km}` so venue coordinates are
+  captured and stored alongside the distance-from-Turku value
+- `src/modules/agent/process_inquiry.php` — at inquiry time: stores venue `lat/lng`; runs
+  TravelCalculator with the default 6-person lineup (Toni/Mortti as sound/bass defaults)
+  to populate `car1_distance_km` and `car2_distance_km` instead of the naive `distFromTurku×2`
+- `src/modules/gigs/detail.php` — "Recalculate travel" button in Pricing card header;
+  flash notices for travel_recalculated, travel_failed, travel_no_venue_coords
+- `src/index.php` — route `/gigs/{id}/travel/calculate` (POST, owner)
+- `db/schema/core.sql` — updated with all migration 010 columns; `gig_personnel` ENUM
+  updated to match migration 007 role names
+- `Makefile` — new targets: `seed-musician-addresses`, `seed-musician-addresses-prod`,
+  `geocode-musicians`
+
+---
+
+## [Unreleased — previous]
+
+### Added
+- `db/migrations/008_setlists.sql` — three new tables: `songs` (global repertoire library,
+  deduped by title+artist), `setlists` (one named set per gig), `setlist_songs` (ordered
+  junction; same song may repeat in a set; swap-based `sort_order` reordering)
+- `db/migrations/009_venue_placeholder_nulls.sql` — detaches gigs from ETL-created phantom
+  venue rows (`name = city` or `name = 'EI TIEDOSSA'`) and soft-deletes those rows;
+  prevents false-positive venue-familiar-quote template selection
+- `src/modules/gigs/setlist_song_add.php` — POST handler: get-or-create song + setlist,
+  append to ordered setlist_songs; case-insensitive song dedup
+- `src/modules/gigs/setlist_song_remove.php` — POST handler: delete setlist_songs row;
+  auto-removes parent setlist row if it becomes empty
+- `src/modules/gigs/setlist_song_move.php` — POST handler: swap sort_order with adjacent
+  row (up/down); no-op if already at boundary
+- Setlist card on gig detail page — shows per-set song tables with ↑↓ reorder and Remove
+  actions; add form in card footer (title, artist, set selector, optional notes field)
+
+### Changed
+- `src/index.php` — three new routes for setlist song add, remove, move (owner role)
+- `db/schema/core.sql` — three new table definitions added (songs, setlists, setlist_songs)
+
+---
+
+## [Unreleased — previous]
+
+### Added
 - `db/migrations/006_users_email.sql` — adds nullable `email VARCHAR(255)` column to
   `users`; prerequisite for musician seeding and future musician portal auth.
 - `db/migrations/007_gig_personnel_schema.sql` — two changes to `gig_personnel`:

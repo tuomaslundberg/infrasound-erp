@@ -48,11 +48,37 @@ $usersStmt = $pdo->prepare(
 $usersStmt->execute();
 $availableUsers = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Setlist: load all sets with their songs for this gig
+$setlistStmt = $pdo->prepare(
+    "SELECT sl.id AS setlist_id, sl.set_number, sl.name AS set_name,
+            ss.id AS ss_id, ss.sort_order, ss.notes AS ss_notes,
+            s.id AS song_id, s.title, s.artist
+     FROM   setlists sl
+     LEFT JOIN setlist_songs ss ON ss.setlist_id = sl.id
+     LEFT JOIN songs s          ON s.id = ss.song_id AND s.deleted_at IS NULL
+     WHERE  sl.gig_id = ?
+     ORDER BY sl.set_number ASC, ss.sort_order ASC, ss.id ASC"
+);
+$setlistStmt->execute([$gigId]);
+$setlistRows = $setlistStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Group into [ set_number => ['setlist_id' => …, 'set_name' => …, 'songs' => […]] ]
+$sets = [];
+foreach ($setlistRows as $row) {
+    $n = $row['set_number'];
+    if (!isset($sets[$n])) {
+        $sets[$n] = ['setlist_id' => $row['setlist_id'], 'set_name' => $row['set_name'], 'songs' => []];
+    }
+    if ($row['ss_id']) {
+        $sets[$n]['songs'][] = $row;
+    }
+}
+
 // Flash notices via query string
 $notice = $_GET['notice'] ?? null;
 $error  = $_GET['error']  ?? null;
 
-render_layout($gig['customer_name'], function () use ($gig, $transitions, $personnel, $availableUsers, $notice, $error) {
+render_layout($gig['customer_name'], function () use ($gig, $transitions, $personnel, $availableUsers, $sets, $notice, $error) {
 ?>
   <?php if ($notice === 'inquiry_created'): ?>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -91,6 +117,31 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
   <?php elseif ($notice === 'personnel_removed'): ?>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
     Musician removed from lineup.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($notice === 'song_added'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Song added to setlist.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($notice === 'song_removed'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Song removed from setlist.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($notice === 'travel_recalculated'): ?>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    Travel costs recalculated from lineup and venue.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'travel_failed'): ?>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    Travel calculation failed — check that musicians have home addresses seeded and the venue is geocoded.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <?php elseif ($error === 'travel_no_venue_coords'): ?>
+  <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    Venue has no geocoordinates — submit a new inquiry via the AI form to geocode it, or enter distances manually.
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
   <?php elseif ($error === 'duplicate_personnel'): ?>
@@ -147,7 +198,12 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
 
     <div class="col-md-6">
       <div class="card h-100">
-        <div class="card-header">Pricing</div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          Pricing
+          <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/travel/calculate" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Recalculate travel</button>
+          </form>
+        </div>
         <div class="card-body">
           <dl class="row mb-0">
             <dt class="col-sm-5">Quoted price</dt>
@@ -351,6 +407,88 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
           </form>
         </div>
         <?php endif; ?>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">Setlist</div>
+        <div class="card-body <?= $sets ? 'p-0' : '' ?>">
+          <?php if (!$sets): ?>
+            <p class="text-muted mb-0">No setlist yet.</p>
+          <?php else: ?>
+            <?php foreach ($sets as $setNum => $set): ?>
+              <h6 class="px-3 pt-3 mb-0">
+                <?= $set['set_name'] ? htmlspecialchars($set['set_name']) : 'Set ' . (int)$setNum ?>
+              </h6>
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th style="width:2rem">#</th>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Notes</th>
+                    <th style="width:5rem"></th>
+                    <th style="width:5rem"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($set['songs'] as $i => $ss): ?>
+                  <tr>
+                    <td class="text-muted"><?= $i + 1 ?></td>
+                    <td><?= htmlspecialchars($ss['title']) ?></td>
+                    <td><?= htmlspecialchars($ss['artist']) ?></td>
+                    <td class="text-muted small"><?= $ss['ss_notes'] ? htmlspecialchars($ss['ss_notes']) : '' ?></td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/setlist/songs/<?= (int)$ss['ss_id'] ?>/move/up">
+                          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Move up">↑</button>
+                        </form>
+                        <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/setlist/songs/<?= (int)$ss['ss_id'] ?>/move/down">
+                          <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Move down">↓</button>
+                        </form>
+                      </div>
+                    </td>
+                    <td>
+                      <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/setlist/songs/<?= (int)$ss['ss_id'] ?>/remove">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                      </form>
+                    </td>
+                  </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+        <div class="card-footer">
+          <form method="post" action="/gigs/<?= (int)$gig['id'] ?>/setlist/songs" class="row g-2 align-items-end">
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Title</label>
+              <input type="text" name="title" class="form-control form-control-sm" required style="width:180px">
+            </div>
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Artist</label>
+              <input type="text" name="artist" class="form-control form-control-sm" required style="width:150px">
+            </div>
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Set</label>
+              <select name="set_number" class="form-select form-select-sm" style="width:70px">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <label class="form-label form-label-sm mb-1">Notes</label>
+              <input type="text" name="notes" class="form-control form-control-sm" style="width:150px" placeholder="optional">
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 

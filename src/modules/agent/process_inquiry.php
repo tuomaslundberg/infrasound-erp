@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../templates/layout.php';
 require_once __DIR__ . '/../../../cli/lib/PriceCalculator.php';
+require_once __DIR__ . '/../../../cli/lib/TravelCalculator.php';
 require_once __DIR__ . '/lib/InquiryExtractor.php';
 require_once __DIR__ . '/lib/GeocodingHelper.php';
 
@@ -44,13 +45,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $customerType = 'other';
     }
 
-    // --- Geocode venue address → distance from Turku --------------------------
-    // This populates the distance-premium input only.
-    // Car mileage (car1_distance_km etc.) starts as the same value and must be
-    // verified / corrected by the owner before generating a quote.
+    // --- Geocode venue → distance from Turku + lat/lng for TravelCalculator ---
+    // Sanitize: reject placeholder strings the model may emit instead of null.
+    $placeholderPattern = '/^[<(]?\s*(unknown|ei tiedossa|n\/a|tbd|null)\s*[>)]?$/i';
+    if ($venueAddress && preg_match($placeholderPattern, $venueAddress)) {
+        $venueAddress = null;
+    }
+    if ($venueCity && preg_match($placeholderPattern, $venueCity)) {
+        $venueCity = null;
+    }
+    if ($venueName && preg_match($placeholderPattern, $venueName)) {
+        $venueName = '';
+    }
+
     $distFromTurku = null;
-    if ($venueAddress || $venueCity) {
-        $distFromTurku = GeocodingHelper::distanceFromTurku($venueAddress ?? '', $venueCity ?? '');
+    $venueLat      = null;
+    $venueLng      = null;
+    // Try geocoding with address+city first; fall back to venue name alone if both are null.
+    $geocodeQuery = ($venueAddress || $venueCity)
+        ? ($venueAddress ?? '') . ' ' . ($venueCity ?? '')
+        : $venueName;
+    if ($geocodeQuery !== '' && $geocodeQuery !== ' ') {
+        $venueGeo = GeocodingHelper::geocodeVenue(trim($geocodeQuery), '');
+        if ($venueGeo !== null) {
+            $distFromTurku = $venueGeo['distance_km'];
+            $venueLat      = $venueGeo['lat'];
+            $venueLng      = $venueGeo['lng'];
+        }
+    }
+
+    // --- Travel costs: compute with default lineup via TravelCalculator -------
+    // No gig_personnel rows exist yet at inquiry time; use named default users.
+    $car1Km         = null;
+    $car2Km         = null;
+    $otherTravelCents = 0;
+
+    if ($venueLat !== null && $venueLng !== null) {
+        $defaultUsernames = [
+            'tuomas.lundberg', 'toni.puttonen', 'joni.virtanen',
+            'alina.kangas', 'lauri.lehtinen', 'mortti.markkanen',
+        ];
+        // Role assignments for synthetic default lineup
+        $defaultRoles = [
+            'tuomas.lundberg' => 'keyboards',
+            'toni.puttonen'   => 'sound_engineering',
+            'joni.virtanen'   => 'drums',
+            'alina.kangas'    => 'vocals',
+            'lauri.lehtinen'  => 'guitar',
+            'mortti.markkanen'=> 'bass',
+        ];
+        $placeholders = implode(',', array_fill(0, count($defaultUsernames), '?'));
+        $userStmt = $pdo->prepare(
+            "SELECT username, home_lat, home_lng, transport_mode
+             FROM   users WHERE username IN ($placeholders) AND deleted_at IS NULL"
+        );
+        $userStmt->execute($defaultUsernames);
+        $defaultUsers = $userStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $synthPersonnel = array_map(fn($u) => [
+            'role'               => $defaultRoles[$u['username']] ?? 'other',
+            'transport_override' => null,
+            'username'           => $u['username'],
+            'home_lat'           => $u['home_lat'],
+            'home_lng'           => $u['home_lng'],
+            'transport_mode'     => $u['transport_mode'],
+        ], $defaultUsers);
+
+        $travel = TravelCalculator::calculateFromPersonnel(
+            $synthPersonnel,
+            $venueLat,
+            $venueLng
+        );
+        $car1Km           = $travel['car1_km'];
+        $car2Km           = $travel['car2_km'] ?? 0;
+        $otherTravelCents = (int)round($travel['ferry_costs_eur'] * 100);
     }
 
     // --- Price calculation with extracted inputs (baseline) -------------------
@@ -59,9 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'meta'  => ['channel' => 'mail'],
         'gig'   => ['distances' => [
             'from_turku_km'          => $distFromTurku ?? 0,
-            'car1_trip_km'           => ($distFromTurku ?? 0) * 2,
-            'car2_trip_km'           => 0,
-            'other_travel_costs_eur' => 0,
+            'car1_trip_km'           => $car1Km ?? (($distFromTurku ?? 0) * 2),
+            'car2_trip_km'           => $car2Km ?? 0,
+            'other_travel_costs_eur' => $otherTravelCents / 100,
         ]],
         'order' => [
             'dynamic_pricing_tier1' => false,
@@ -115,15 +183,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $existingVenue = $venueRow->fetch(PDO::FETCH_ASSOC);
         if ($existingVenue) {
             $venueId = (int)$existingVenue['id'];
+            // Store lat/lng if we geocoded successfully and they're not already set
+            if ($venueLat !== null) {
+                $pdo->prepare(
+                    'UPDATE venues SET lat = ?, lng = ? WHERE id = ? AND lat IS NULL'
+                )->execute([$venueLat, $venueLng, $venueId]);
+            }
             // Fall back to stored distance if geocoding produced nothing.
             if ($distFromTurku === null && $existingVenue['distance_from_turku_km']) {
                 $distFromTurku = (float)$existingVenue['distance_from_turku_km'];
             }
         } else {
             $pdo->prepare(
-                'INSERT INTO venues (name, address_line, city, distance_from_turku_km)
-                 VALUES (?, ?, ?, ?)'
-            )->execute([$venueName ?: 'Unknown', $venueAddress, $venueCity, $distFromTurku]);
+                'INSERT INTO venues (name, address_line, city, distance_from_turku_km, lat, lng)
+                 VALUES (?, ?, ?, ?, ?, ?)'
+            )->execute([$venueName ?: 'Unknown', $venueAddress, $venueCity, $distFromTurku, $venueLat, $venueLng]);
             $venueId = (int)$pdo->lastInsertId();
         }
 
@@ -136,12 +210,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 qty_ennakkoroudaus, qty_song_requests_extra, qty_extra_performances,
                 qty_background_music_h, qty_live_album, discount_cents,
                 notes)
-             VALUES (?, ?, ?, ?, 'inquiry', 'mail', ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
+             VALUES (?, ?, ?, ?, 'inquiry', 'mail', ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
         )->execute([
             $customerId, $contactId, $venueId, $gigDate,
             $customerType, $orderDesc,
             $basePriceCents, $basePriceCents,
-            $distFromTurku !== null ? $distFromTurku * 2 : null, 0,
+            $car1Km, $car2Km ?? 0, $otherTravelCents,
             $notes,
         ]);
         $gigId = (int)$pdo->lastInsertId();
