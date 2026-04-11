@@ -51,8 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // commit in MariaDB, so we cannot wrap the full migration in a transaction.
                 // We execute statements sequentially; on failure the schema may be partially
                 // applied, but schema_migrations is only updated on full success.
+                // Strip -- comment lines before splitting on semicolons,
+                // since comments may contain semicolons that produce invalid fragments.
+                $stripped = implode("\n", array_filter(
+                    explode("\n", $sql),
+                    fn($line) => !preg_match('/^\s*--/', $line)
+                ));
                 $statements = array_filter(
-                    array_map('trim', explode(';', $sql)),
+                    array_map('trim', explode(';', $stripped)),
                     fn($s) => $s !== ''
                 );
                 foreach ($statements as $stmt) {
