@@ -38,8 +38,8 @@ $routes = [
     ['#^/agent/process-inquiry$#',      'modules/agent/process_inquiry.php', 'owner'],
 
     // Admin
-    ['#^/admin/migrations$#',           'modules/admin/migrations.php',         'admin'],
-    ['#^/admin/geocode-musicians$#',    'modules/admin/geocode_musicians.php',   'admin'],
+    ['#^/admin/migrations$#',           'modules/admin/migrations.php',         'owner'],
+    ['#^/admin/geocode-musicians$#',    'modules/admin/geocode_musicians.php',   'owner'],
 ];
 
 // ---------------------------------------------------------------------------

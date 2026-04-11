@@ -11,7 +11,17 @@ $pdo->exec("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 ");
 
-$migrationsDir = __DIR__ . '/../../../../db/migrations';
+// On Plesk: document root is httpdocs/src/, so repo root is one level above src/.
+// __DIR__ = .../httpdocs/src/modules/admin → ../../../ = httpdocs/ (repo root)
+// In Docker: db/ is not mounted into the PHP container; use `make migrate-dev` instead.
+$migrationsDir = realpath(__DIR__ . '/../../../db/migrations') ?: null;
+if ($migrationsDir === null) {
+    render_layout('Migrations', function () {
+        echo '<div class="alert alert-warning">Migration files are not accessible from this environment. '
+           . 'Use <code>make migrate-dev</code> in development.</div>';
+    });
+    exit;
+}
 $files = glob($migrationsDir . '/*.sql');
 natsort($files);
 
