@@ -1,4 +1,18 @@
 <?php
+// Load .env when running outside Docker (bare PHP on Plesk).
+// In Docker, env vars are already injected; putenv is a no-op for set vars.
+$_envFile = __DIR__ . '/../.env';
+if (file_exists($_envFile)) {
+    foreach (file($_envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $_line) {
+        if (str_starts_with(trim($_line), '#') || !str_contains($_line, '=')) continue;
+        [$_k, $_v] = explode('=', $_line, 2);
+        $_k = trim($_k);
+        if (getenv($_k) === false) putenv($_k . '=' . trim($_v));
+    }
+    unset($_envFile, $_line, $_k, $_v);
+}
+unset($_envFile);
+
 $host = getenv('DB_HOST');
 $db   = getenv('MYSQL_DATABASE');
 $user = getenv('MYSQL_USER');

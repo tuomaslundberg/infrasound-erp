@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `config/db.php` — dotenv loader for bare-PHP deployments (Plesk); reads `.env` from repo
+  root when env vars are not injected by Docker; no-op when vars already set (Docker compat)
+- `src/modules/admin/migrations.php` — web migration runner at `/admin/migrations`; creates
+  `schema_migrations` tracking table; lists pending/applied migrations; applies one at a time
+- `src/modules/admin/geocode_musicians.php` — admin HTTP endpoint at `/admin/geocode-musicians`;
+  replaces CLI-only `geocode_musicians.php` for Plesk deployments; shows current geocoding state
+
+---
+
+### Added
 - `db/migrations/010_travel_calculator_schema.sql` — schema additions for route-based travel
   cost calculation: `users` gains `home_address`, `home_lat/lng`, `transport_mode`;
   `venues` gains `lat/lng`, `requires_ferry`, `ferry_cost_estimate_cents`;
