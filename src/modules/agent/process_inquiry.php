@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fields = InquiryExtractor::extract($rawText);
     } catch (RuntimeException $e) {
         error_log('InquiryExtractor failed: ' . $e->getMessage());
-        $extractionError = 'AI extraction failed: ' . $e->getMessage()
+        $extractionError = 'AI extraction failed: ' . htmlspecialchars($e->getMessage())
             . ' — try again, or use the <a href="/gigs/new">manual form</a>.';
         goto render_form;
     }
