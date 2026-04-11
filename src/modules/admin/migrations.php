@@ -47,8 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Could not read migration file.';
         } else {
             try {
-                $pdo->beginTransaction();
-                // Split on semicolons to execute multi-statement files.
+                // Note: DDL statements (ALTER TABLE, CREATE TABLE) cause an implicit
+                // commit in MariaDB, so we cannot wrap the full migration in a transaction.
+                // We execute statements sequentially; on failure the schema may be partially
+                // applied, but schema_migrations is only updated on full success.
                 $statements = array_filter(
                     array_map('trim', explode(';', $sql)),
                     fn($s) => $s !== ''
@@ -58,11 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $pdo->prepare("INSERT INTO schema_migrations (version) VALUES (?)")
                     ->execute([$target]);
-                $pdo->commit();
                 $appliedSet[$target] = true;
                 $notice = "Applied: $target";
             } catch (Throwable $e) {
-                if ($pdo->inTransaction()) $pdo->rollBack();
                 $error = 'Migration failed: ' . htmlspecialchars($e->getMessage());
             }
         }
