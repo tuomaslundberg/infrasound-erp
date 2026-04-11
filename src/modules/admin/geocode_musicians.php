@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../templates/layout.php';
-require_once __DIR__ . '/../../../../cli/lib/RoutingHelper.php';
+require_once __DIR__ . '/../../../cli/lib/RoutingHelper.php';
 
 $results = [];
 $ran     = false;
