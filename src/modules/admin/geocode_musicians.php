@@ -8,10 +8,13 @@ $results = [];
 $ran     = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    set_time_limit(0); // Geocoding is rate-limited to 1 req/s; disable PHP timeout.
     $ran  = true;
     $stmt = $pdo->query(
         "SELECT id, username, home_address FROM users
-         WHERE home_address IS NOT NULL AND home_lat IS NULL AND deleted_at IS NULL
+         WHERE home_address IS NOT NULL
+           AND (home_lat IS NULL OR home_lng IS NULL)
+           AND deleted_at IS NULL
          ORDER BY id ASC"
     );
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -41,7 +44,7 @@ $allUsers = $pdo->query(
      ORDER BY username ASC"
 )->fetchAll(PDO::FETCH_ASSOC);
 
-$pendingCount = count(array_filter($allUsers, fn($u) => $u['home_lat'] === null));
+$pendingCount = count(array_filter($allUsers, fn($u) => $u['home_lat'] === null || $u['home_lng'] === null));
 
 render_layout('Geocode musicians', function () use ($allUsers, $results, $ran, $pendingCount) {
 ?>
@@ -89,11 +92,11 @@ render_layout('Geocode musicians', function () use ($allUsers, $results, $ran, $
     <thead class="table-light"><tr><th>Username</th><th>Address</th><th>Lat</th><th>Lng</th></tr></thead>
     <tbody>
     <?php foreach ($allUsers as $u): ?>
-      <tr class="<?= $u['home_lat'] === null ? 'table-warning' : '' ?>">
+      <tr class="<?= ($u['home_lat'] === null || $u['home_lng'] === null) ? 'table-warning' : '' ?>">
         <td><?= htmlspecialchars($u['username']) ?></td>
         <td><?= htmlspecialchars($u['home_address'] ?? '—') ?></td>
-        <td class="font-monospace small"><?= $u['home_lat'] ?? '<span class="text-muted">—</span>' ?></td>
-        <td class="font-monospace small"><?= $u['home_lng'] ?? '<span class="text-muted">—</span>' ?></td>
+        <td class="font-monospace small"><?= $u['home_lat'] === null ? '<span class="text-muted">—</span>' : htmlspecialchars((string) $u['home_lat']) ?></td>
+        <td class="font-monospace small"><?= $u['home_lng'] === null ? '<span class="text-muted">—</span>' : htmlspecialchars((string) $u['home_lng']) ?></td>
       </tr>
     <?php endforeach; ?>
     </tbody>

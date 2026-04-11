@@ -22,7 +22,8 @@ if ($migrationsDir === null) {
     });
     exit;
 }
-$files = glob($migrationsDir . '/*.sql');
+
+$files = glob($migrationsDir . '/*.sql') ?: [];
 natsort($files);
 
 $applied = $pdo->query("SELECT version FROM schema_migrations ORDER BY version")
@@ -46,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Could not read migration file.';
         } else {
             try {
+                $pdo->beginTransaction();
                 // Split on semicolons to execute multi-statement files.
                 $statements = array_filter(
                     array_map('trim', explode(';', $sql)),
@@ -56,10 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $pdo->prepare("INSERT INTO schema_migrations (version) VALUES (?)")
                     ->execute([$target]);
+                $pdo->commit();
                 $appliedSet[$target] = true;
                 $notice = "Applied: $target";
             } catch (Throwable $e) {
-                $error = 'Migration failed: ' . $e->getMessage();
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $error = 'Migration failed: ' . htmlspecialchars($e->getMessage());
             }
         }
     }
@@ -75,9 +79,12 @@ render_layout('Migrations', function () use ($files, $appliedSet, $notice, $erro
   <div class="alert alert-success"><?= htmlspecialchars($notice) ?></div>
   <?php endif; ?>
   <?php if ($error): ?>
-  <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+  <div class="alert alert-danger"><?= $error ?></div>
   <?php endif; ?>
 
+  <?php if (empty($files)): ?>
+  <div class="alert alert-info">No migration files found.</div>
+  <?php else: ?>
   <table class="table table-sm table-bordered">
     <thead class="table-light">
       <tr>
@@ -97,8 +104,8 @@ render_layout('Migrations', function () use ($files, $appliedSet, $notice, $erro
         <td>
           <?php if (!$isApplied): ?>
           <form method="post" action="/admin/migrations"
-                onsubmit="return confirm('Apply <?= htmlspecialchars($version, ENT_QUOTES) ?>?')">
-            <input type="hidden" name="version" value="<?= htmlspecialchars($version) ?>">
+                onsubmit="return confirm('Apply <?= htmlspecialchars($version, ENT_QUOTES, 'UTF-8') ?>?')">
+            <input type="hidden" name="version" value="<?= htmlspecialchars($version, ENT_QUOTES, 'UTF-8') ?>">
             <button class="btn btn-sm btn-warning">Apply</button>
           </form>
           <?php else: ?>
@@ -109,5 +116,6 @@ render_layout('Migrations', function () use ($files, $appliedSet, $notice, $erro
     <?php endforeach; ?>
     </tbody>
   </table>
+  <?php endif; ?>
 <?php
 });
