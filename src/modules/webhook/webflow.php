@@ -175,7 +175,7 @@ function handleTilauslomake(PDO $pdo, array $data): int
     $lastName  = trim($data['Sukunimi']            ?? '');
     $email     = trim($data['Email']               ?? $data['email']               ?? '');
     $phone     = trim($data['Phone']               ?? '');
-    $isCompany = !empty($data['Yritys']);
+    $isCompany = ($data['Yritys'] ?? '') === 'true'; // Webflow sends string "true"/"false"
     $orgName   = trim($data['Yhteisön nimi']       ?? $data['Yhteis-n-nimi']       ?? '');
     $vatId     = trim($data['Y-tunnus']            ?? '');
     $dateRaw   = trim($data['Tilaisuuden ajankohta'] ?? $data['Tilaisuuden-ajankohta'] ?? '');
