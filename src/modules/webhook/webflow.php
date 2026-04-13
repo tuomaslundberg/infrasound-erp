@@ -38,6 +38,11 @@ $expectedToken = getenv('WEBFLOW_WEBHOOK_SECRET') ?: '';
 $providedToken = $_GET['token'] ?? '';
 
 if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
+    error_log(sprintf(
+        'Webflow webhook 401: token check failed. expected_len=%d provided_len=%d match=%s',
+        strlen($expectedToken), strlen($providedToken),
+        ($expectedToken !== '' && $providedToken !== '') ? 'no' : 'empty_expected'
+    ));
     http_response_code(401);
     echo json_encode(['ok' => false, 'error' => 'Unauthorised']);
     exit;
@@ -52,6 +57,7 @@ if ($signingSecret !== '') {
     $signature = $_SERVER['HTTP_X_WEBFLOW_SIGNATURE'] ?? '';
 
     if ($timestamp === '' || $signature === '') {
+        error_log('Webflow webhook 401: missing signature headers. timestamp=' . ($timestamp !== '' ? 'present' : 'missing') . ' signature=' . ($signature !== '' ? 'present' : 'missing'));
         http_response_code(401);
         echo json_encode(['ok' => false, 'error' => 'Missing Webflow signature headers']);
         exit;
@@ -59,6 +65,7 @@ if ($signingSecret !== '') {
 
     // Reject payloads older than 5 minutes (replay attack protection).
     if (abs(time() - (int)$timestamp) > 300) {
+        error_log('Webflow webhook 401: timestamp too old. ts=' . $timestamp . ' now=' . time());
         http_response_code(401);
         echo json_encode(['ok' => false, 'error' => 'Webhook timestamp too old']);
         exit;
@@ -66,6 +73,7 @@ if ($signingSecret !== '') {
 
     $expected = hash_hmac('sha256', $timestamp . ':' . $rawBody, $signingSecret);
     if (!hash_equals($expected, $signature)) {
+        error_log('Webflow webhook 401: HMAC mismatch. signing_secret_len=' . strlen($signingSecret));
         http_response_code(401);
         echo json_encode(['ok' => false, 'error' => 'Invalid signature']);
         exit;
