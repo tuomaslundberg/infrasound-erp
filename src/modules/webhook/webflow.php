@@ -171,14 +171,14 @@ function handleEmailForm(PDO $pdo, array $data): int
  */
 function handleTilauslomake(PDO $pdo, array $data): int
 {
-    $firstName = trim($data['Etunimi']        ?? '');
-    $lastName  = trim($data['Sukunimi']       ?? '');
-    $email     = trim($data['email']          ?? '');
-    $phone     = trim($data['Phone']          ?? '');
+    $firstName = trim($data['Etunimi']             ?? '');
+    $lastName  = trim($data['Sukunimi']            ?? '');
+    $email     = trim($data['Email']               ?? $data['email']               ?? '');
+    $phone     = trim($data['Phone']               ?? '');
     $isCompany = !empty($data['Yritys']);
-    $orgName   = trim($data['Yhteis-n-nimi']  ?? '');
-    $vatId     = trim($data['Y-tunnus']       ?? '');
-    $dateRaw   = trim($data['Tilaisuuden-ajankohta'] ?? '');
+    $orgName   = trim($data['Yhteisön nimi']       ?? $data['Yhteis-n-nimi']       ?? '');
+    $vatId     = trim($data['Y-tunnus']            ?? '');
+    $dateRaw   = trim($data['Tilaisuuden ajankohta'] ?? $data['Tilaisuuden-ajankohta'] ?? '');
 
     $customerName = $isCompany && $orgName !== '' ? $orgName : "$firstName $lastName";
     $customerType = $isCompany ? 'company' : 'other';
