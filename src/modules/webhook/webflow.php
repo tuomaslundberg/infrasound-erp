@@ -64,13 +64,16 @@ if ($signingSecret !== '') {
     }
 
     // Reject payloads older than 5 minutes (replay attack protection).
-    if (abs(time() - (int)$timestamp) > 300) {
+    // Webflow sends the timestamp in milliseconds; convert to seconds for comparison.
+    $timestampSec = intdiv((int)$timestamp, 1000);
+    if (abs(time() - $timestampSec) > 300) {
         error_log('Webflow webhook 401: timestamp too old. ts=' . $timestamp . ' now=' . time());
         http_response_code(401);
         echo json_encode(['ok' => false, 'error' => 'Webhook timestamp too old']);
         exit;
     }
 
+    // HMAC is computed over the raw millisecond timestamp string as Webflow sent it.
     $expected = hash_hmac('sha256', $timestamp . ':' . $rawBody, $signingSecret);
     if (!hash_equals($expected, $signature)) {
         error_log('Webflow webhook 401: HMAC mismatch. signing_secret_len=' . strlen($signingSecret));
