@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../cli/lib/PriceCalculator.php';
 require_once __DIR__ . '/../../../cli/lib/TravelCalculator.php';
 require_once __DIR__ . '/lib/InquiryExtractor.php';
 require_once __DIR__ . '/lib/GeocodingHelper.php';
+require_once __DIR__ . '/lib/GigCreator.php';
 
 $extractionError = null;
 
@@ -146,83 +147,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
     $basePriceCents = (int)round($price['gross_total'] * 100);
 
-    // --- Persist (transaction) ------------------------------------------------
+    // --- Persist via GigCreator -----------------------------------------------
     try {
-        $pdo->beginTransaction();
-
-        // Match existing customer by name; INSERT only if new.
-        $custRow = $pdo->prepare(
-            'SELECT id FROM customers WHERE LOWER(name) = LOWER(?) AND deleted_at IS NULL LIMIT 1'
-        );
-        $custRow->execute([$customerName ?: 'Unknown']);
-        $existingCustomer = $custRow->fetch(PDO::FETCH_ASSOC);
-        if ($existingCustomer) {
-            $customerId = (int)$existingCustomer['id'];
-        } else {
-            $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
-                ->execute([$customerName ?: 'Unknown', 'person']);
-            $customerId = (int)$pdo->lastInsertId();
-        }
-
-        $pdo->prepare('INSERT INTO contacts (first_name, last_name, email, phone) VALUES (?, ?, ?, ?)')
-            ->execute([$contactFirstName, $contactLastName, $contactEmail, $contactPhone]);
-        $contactId = (int)$pdo->lastInsertId();
-
-        $pdo->prepare('INSERT INTO customer_contacts (customer_id, contact_id, is_primary) VALUES (?, ?, 1)')
-            ->execute([$customerId, $contactId]);
-
-        // Match existing venue by name + city; INSERT only if new.
-        $venueRow = $pdo->prepare(
-            'SELECT id, distance_from_turku_km FROM venues
-             WHERE  LOWER(name) = LOWER(?)
-             AND    (? IS NULL OR city IS NULL OR LOWER(city) = LOWER(?))
-             AND    deleted_at IS NULL
-             LIMIT  1'
-        );
-        $venueRow->execute([$venueName ?: 'Unknown', $venueCity, $venueCity]);
-        $existingVenue = $venueRow->fetch(PDO::FETCH_ASSOC);
-        if ($existingVenue) {
-            $venueId = (int)$existingVenue['id'];
-            // Store lat/lng if we geocoded successfully and they're not already set
-            if ($venueLat !== null) {
-                $pdo->prepare(
-                    'UPDATE venues SET lat = ?, lng = ? WHERE id = ? AND lat IS NULL'
-                )->execute([$venueLat, $venueLng, $venueId]);
-            }
-            // Fall back to stored distance if geocoding produced nothing.
-            if ($distFromTurku === null && $existingVenue['distance_from_turku_km']) {
-                $distFromTurku = (float)$existingVenue['distance_from_turku_km'];
-            }
-        } else {
-            $pdo->prepare(
-                'INSERT INTO venues (name, address_line, city, distance_from_turku_km, lat, lng)
-                 VALUES (?, ?, ?, ?, ?, ?)'
-            )->execute([$venueName ?: 'Unknown', $venueAddress, $venueCity, $distFromTurku, $venueLat, $venueLng]);
-            $venueId = (int)$pdo->lastInsertId();
-        }
-
-        $pdo->prepare(
-            "INSERT INTO gigs
-               (customer_id, contact_id, venue_id, gig_date, status, channel, customer_type,
-                order_description, base_price_cents, quoted_price_cents,
-                car1_distance_km, car2_distance_km, other_travel_costs_cents,
-                pricing_tier1, pricing_tier2,
-                qty_ennakkoroudaus, qty_song_requests_extra, qty_extra_performances,
-                qty_background_music_h, qty_live_album, discount_cents,
-                notes)
-             VALUES (?, ?, ?, ?, 'inquiry', 'mail', ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
-        )->execute([
-            $customerId, $contactId, $venueId, $gigDate,
-            $customerType, $orderDesc,
-            $basePriceCents, $basePriceCents,
-            $car1Km, $car2Km ?? 0, $otherTravelCents,
-            $notes,
-        ]);
-        $gigId = (int)$pdo->lastInsertId();
-
-        $pdo->commit();
-    } catch (Throwable $e) {
-        $pdo->rollBack();
+        $gigId = GigCreator::create($pdo, [
+            'customer_name'      => $customerName,
+            'customer_type'      => $customerType,
+            'gig_date'           => $gigDate,
+            'venue_name'         => $venueName,
+            'venue_address'      => $venueAddress,
+            'venue_city'         => $venueCity,
+            'contact_first_name' => $contactFirstName,
+            'contact_last_name'  => $contactLastName,
+            'contact_email'      => $contactEmail,
+            'contact_phone'      => $contactPhone,
+            'order_description'  => $orderDesc,
+            'notes'              => $notes,
+            'dist_from_turku'    => $distFromTurku,
+            'venue_lat'          => $venueLat,
+            'venue_lng'          => $venueLng,
+            'car1_km'            => $car1Km,
+            'car2_km'            => $car2Km,
+            'other_travel_cents' => $otherTravelCents,
+            'base_price_cents'   => $basePriceCents,
+        ], 'mail');
+    } catch (RuntimeException $e) {
         error_log('Agent inquiry save failed: ' . $e->getMessage());
         $extractionError = 'Database error — could not save. Check the server error log.';
         goto render_form;

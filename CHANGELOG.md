@@ -8,6 +8,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
+  create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
+  and owner accounts; admin+ can also create admin accounts; developer accounts not creatable via UI
+- **Self-service password change** — `/account/password` available to all authenticated roles;
+  verifies current password before accepting new one
+- **Webflow webhook endpoint** — `/webhook/webflow` (public, token-authenticated); receives Webflow
+  V1/V2 form-submission JSON; routes "Email Form" through AI extraction pipeline and "Tilauslomake"
+  through direct field mapping; creates gig entities with `channel=saturday_band, status=inquiry`
+- `src/modules/agent/lib/GigCreator.php` — shared gig entity creation transaction (customer →
+  contact → venue → gig); extracted from `process_inquiry.php` for reuse by webhook handler
+- `src/templates/layout.php` — added Users and Password nav links
+- `.env.example` — added `WEBFLOW_WEBHOOK_SECRET`
+
+### Changed
+- `src/modules/agent/process_inquiry.php` — refactored to use `GigCreator::create()`; no
+  behaviour change
 - `config/db.php` — dotenv loader for bare-PHP deployments (Plesk); reads `.env` from repo
   root when env vars are not injected by Docker; no-op when vars already set (Docker compat)
 - `src/modules/admin/migrations.php` — web migration runner at `/admin/migrations`; creates

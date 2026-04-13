@@ -40,6 +40,10 @@ function render_layout(string $title, callable $content): void
           <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/agent') ? 'active' : '' ?>"
              href="/agent/process-inquiry">New inquiry (AI)</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/admin/users') ? 'active' : '' ?>"
+             href="/admin/users">Users</a>
+        </li>
         <?php elseif ($currentUser !== null): ?>
         <li class="nav-item">
           <a class="nav-link <?= str_starts_with($_SERVER['REQUEST_URI'], '/musician/gigs') ? 'active' : '' ?>"
@@ -54,6 +58,9 @@ function render_layout(string $title, callable $content): void
             <?= htmlspecialchars($currentUser['username']) ?>
             <span class="badge bg-secondary ms-1"><?= htmlspecialchars($currentUser['role']) ?></span>
           </span>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/account/password">Password</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="/logout">Sign out</a>
