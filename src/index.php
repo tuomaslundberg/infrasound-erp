@@ -37,9 +37,21 @@ $routes = [
     // Agent service
     ['#^/agent/process-inquiry$#',      'modules/agent/process_inquiry.php', 'owner'],
 
-    // Admin
-    ['#^/admin/migrations$#',           'modules/admin/migrations.php',         'owner'],
-    ['#^/admin/geocode-musicians$#',    'modules/admin/geocode_musicians.php',   'owner'],
+    // Admin — user management
+    ['#^/admin/users$#',                    'modules/admin/users.php',          'owner'],
+    ['#^/admin/users/new$#',                'modules/admin/users_form.php',     'owner'],
+    ['#^/admin/users/(\d+)/edit$#',         'modules/admin/users_form.php',     'owner'],
+    ['#^/admin/users/(\d+)/delete$#',       'modules/admin/users_delete.php',   'owner'],
+
+    // Admin — schema + ops
+    ['#^/admin/migrations$#',               'modules/admin/migrations.php',         'owner'],
+    ['#^/admin/geocode-musicians$#',        'modules/admin/geocode_musicians.php',   'owner'],
+
+    // Account
+    ['#^/account/password$#',               'modules/auth/change_password.php', 'musician'],
+
+    // Webhooks (public)
+    ['#^/webhook/webflow$#',                'modules/webhook/webflow.php',      null],
 ];
 
 // ---------------------------------------------------------------------------
