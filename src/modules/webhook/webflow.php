@@ -142,8 +142,8 @@ exit;
  */
 function handleEmailForm(PDO $pdo, array $data): int
 {
-    $name    = trim($data['name']    ?? '');
-    $email   = trim($data['email']   ?? '');
+    $name    = trim($data['Name']    ?? $data['name']    ?? '');
+    $email   = trim($data['Email']   ?? $data['email']   ?? '');
     $message = trim($data['Message'] ?? $data['message'] ?? '');
 
     $rawText = implode("\n", array_filter([
