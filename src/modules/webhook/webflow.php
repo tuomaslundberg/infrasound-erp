@@ -30,7 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// --- Token validation -------------------------------------------------------
+// --- Read raw body first (needed for signature validation) ------------------
+$rawBody = file_get_contents('php://input');
+
+// --- URL token check (first line of defence) --------------------------------
 $expectedToken = getenv('WEBFLOW_WEBHOOK_SECRET') ?: '';
 $providedToken = $_GET['token'] ?? '';
 
@@ -40,8 +43,37 @@ if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
     exit;
 }
 
+// --- Webflow signature validation (HMAC-SHA256) -----------------------------
+// Webflow signs: HMAC-SHA256(key=WEBFLOW_SIGNING_SECRET, data="timestamp:rawBody")
+// Headers: x-webflow-timestamp, x-webflow-signature
+$signingSecret = getenv('WEBFLOW_SIGNING_SECRET') ?: '';
+if ($signingSecret !== '') {
+    $timestamp = $_SERVER['HTTP_X_WEBFLOW_TIMESTAMP'] ?? '';
+    $signature = $_SERVER['HTTP_X_WEBFLOW_SIGNATURE'] ?? '';
+
+    if ($timestamp === '' || $signature === '') {
+        http_response_code(401);
+        echo json_encode(['ok' => false, 'error' => 'Missing Webflow signature headers']);
+        exit;
+    }
+
+    // Reject payloads older than 5 minutes (replay attack protection).
+    if (abs(time() - (int)$timestamp) > 300) {
+        http_response_code(401);
+        echo json_encode(['ok' => false, 'error' => 'Webhook timestamp too old']);
+        exit;
+    }
+
+    $expected = hash_hmac('sha256', $timestamp . ':' . $rawBody, $signingSecret);
+    if (!hash_equals($expected, $signature)) {
+        http_response_code(401);
+        echo json_encode(['ok' => false, 'error' => 'Invalid signature']);
+        exit;
+    }
+}
+
 // --- Parse body -------------------------------------------------------------
-$body = json_decode(file_get_contents('php://input'), true);
+$body = json_decode($rawBody, true);
 if (!is_array($body)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Invalid JSON body']);
