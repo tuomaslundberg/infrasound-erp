@@ -80,8 +80,9 @@ class GigCreator
             if ($existingCustomer) {
                 $customerId = (int)$existingCustomer['id'];
             } else {
+                $dbCustomerType = $customerType === 'company' ? 'company' : 'person';
                 $pdo->prepare('INSERT INTO customers (name, type) VALUES (?, ?)')
-                    ->execute([$customerName, 'person']);
+                    ->execute([$customerName, $dbCustomerType]);
                 $customerId = (int)$pdo->lastInsertId();
             }
 

@@ -32,6 +32,11 @@ $allowedRoles = ['musician', 'owner'];
 if (auth_has_role('admin')) {
     $allowedRoles[] = 'admin';
 }
+// When editing a developer account, include 'developer' so the role is
+// selectable and cannot be silently downgraded on save.
+if ($isEdit && ($db['role'] ?? '') === 'developer') {
+    $allowedRoles[] = 'developer';
+}
 
 $errors   = [];
 $username = $db['username'] ?? '';
@@ -68,10 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         // Check username uniqueness (exclude self in edit mode).
         $uniqStmt = $pdo->prepare(
-            'SELECT id FROM users WHERE username = ? AND deleted_at IS NULL' .
-            ($isEdit ? ' AND id != ' . $editId : '')
+            'SELECT id FROM users WHERE username = ? AND deleted_at IS NULL AND (? IS NULL OR id != ?)'
         );
-        $uniqStmt->execute([$username]);
+        $uniqStmt->execute([$username, $editId, $editId]);
         if ($uniqStmt->fetch()) {
             $errors[] = 'Username already taken.';
         }

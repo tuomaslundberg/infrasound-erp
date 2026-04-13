@@ -57,7 +57,11 @@ render_layout('Users', function () use ($users, $notice, $roleBadge) {
         <td class="small text-muted"><?= htmlspecialchars(substr($u['created_at'], 0, 10)) ?></td>
         <td>
           <a href="/admin/users/<?= $u['id'] ?>/edit" class="btn btn-sm btn-outline-secondary">Edit</a>
-          <?php if (auth_user()['id'] !== (int)$u['id']): ?>
+          <?php
+            $canDelete = auth_user()['id'] !== (int)$u['id']
+                && ($u['role'] !== 'developer' || auth_user()['role'] === 'developer');
+          ?>
+          <?php if ($canDelete): ?>
           <form method="post" action="/admin/users/<?= $u['id'] ?>/delete" class="d-inline"
                 onsubmit="return confirm('Remove <?= htmlspecialchars($u['username'], ENT_QUOTES, 'UTF-8') ?>?')">
             <button class="btn btn-sm btn-outline-danger">Remove</button>
