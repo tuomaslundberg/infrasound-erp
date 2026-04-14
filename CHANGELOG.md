@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `travel_calculate.php` — on-demand geocoding for legacy venues: if a venue has address/city
+  but no lat/lng (imported before inquiry pipeline existed), geocode via Nominatim on "Recalculate
+  travel", persist coords to the venue row, then run TravelCalculator normally; no-address venues
+  still show the existing warning
+
 ### Added
 - **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
   create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
