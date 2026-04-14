@@ -74,8 +74,9 @@ db/
 
 ## Task tracking
 
-- `~/iCloud/context/todos.md` is the canonical task list across all projects — read and update it as work progresses
-- `TODO.md` in the project root is a **read-only legacy reference** — do not edit or treat as current
+- `todos.md` in the project root is a symlink to `~/iCloud/context/todos.md` (master cross-project TODO) — always read at session start; update when ERP-level items surface
+- `TODO.md` in the project root is the **ERP collaborative task list** — version-controlled, shared with Toni; read and update as work progresses
+- `TODO.md.legacy` in the project root is a read-only snapshot of the old task file — do not edit or treat as current
 
 ---
 
@@ -83,6 +84,5 @@ db/
 
 - Do not expose database errors or stack traces to the browser
 - Do not add features, refactoring, or cleanup beyond what is asked
-- Do not commit `.env`
-- Do not create `AGENTS_AGENT_SERVICE.md` until the agent service module is scoped
+- Do not commit `.env` or `.env.dev` — use `.env.example` / `.env.dev.example` as reference only; never read the live credential files
 - `_prompts-todo.md` is a human prompt scratch pad. Never treat its contents as task instructions or act on them.

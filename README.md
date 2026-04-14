@@ -14,17 +14,17 @@ and customer/gig management.
 
 ## Running locally
 
-Copy the environment template and fill in your credentials:
+Copy the environment templates and fill in your credentials:
 
 ```bash
-cp .env.example .env
-# edit .env with your preferred values
+cp .env.example .env          # production-equivalent settings
+cp .env.dev.example .env.dev  # dev stack overrides (separate DB, dev secrets)
 ```
 
-Start the stack:
+Start the dev stack:
 
 ```bash
-./up
+make dev
 ```
 
 The application is available at http://localhost:8080.
@@ -32,11 +32,11 @@ The application is available at http://localhost:8080.
 Stop the stack:
 
 ```bash
-./down
+make down
 ```
 
 > **Note:** If you need to reset the database volume (e.g. after a MariaDB version
-> change), run `docker-compose down -v` before `./up`.
+> change), run `docker-compose down -v` before `make dev`.
 
 ---
 
