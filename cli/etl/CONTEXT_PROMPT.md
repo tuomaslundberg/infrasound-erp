@@ -119,11 +119,27 @@ responsibility of `extract_invoicing.py`.
 
 ---
 
+## Setlist ETL — separate work stream
+
+A parallel ETL work stream for songs and setlists has been scoped and specced. It is
+independent of the invoicing ETL and can proceed in either order.
+
+Key files:
+- `cli/etl/SETLIST_ETL_SPEC.md` — full spec (source files, format eras, schema, Spotify plan)
+- `db/migrations/008_setlists.sql` — songs/setlists/setlist_songs schema (already applied)
+- `db/migrations/013_songs_extension.sql` — songs metadata + setlists.set_type (apply before ETL)
+
+Next step for setlist ETL: set up Spotify Developer credentials (`SPOTIFY_CLIENT_ID`,
+`SPOTIFY_CLIENT_SECRET` in `.env`), then implement `extract_songs.py` followed by
+`enrich_spotify.py`. See spec for full prerequisites and output file plan.
+
+---
+
 ## Key files to read before starting
 
 1. `CLAUDE.md` — non-negotiable conventions
 2. `AGENTS.md` — architecture reference
 3. `cli/etl/INVOICING_ETL_SPEC.md` — full invoicing ETL spec (all flags now resolved)
-4. `db/migrations/004_gig_personnel.sql` — gig_personnel schema baseline
-5. `db/migrations/007_gig_personnel_schema.sql` — pending ENUM/nullable changes
+4. `cli/etl/SETLIST_ETL_SPEC.md` — setlist ETL spec
+5. `db/migrations/007_gig_personnel_schema.sql` — gig_personnel ENUM/nullable changes
 6. `cli/etl/enrich_gigs.py` — reference implementation for the fuzzy match + SQL emit pattern

@@ -7,6 +7,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `db/migrations/013_songs_extension.sql` — extends `songs` with all columns needed for
+  setlist ETL and Spotify integration: `spotify_track_id`, `genre`, `language`, `release_year`,
+  `is_jazz`, `in_repertoire`, `hd_slot`, `hd_status`, `guide_tone_key`, `key_our`, `key_orig`,
+  `key_transposition_st`, `has_gtr2`, `karaoke_eligible`. Extends `setlists` with `set_type`
+  ENUM (`set`, `lounge`, `encore`, `karaoke`) for analytics-friendly set classification.
+- `cli/etl/SETLIST_ETL_SPEC.md` — comprehensive design spec for the setlist/song ETL:
+  source file map, three-era setlist format documentation (2021-2022 `setlist-internal` /
+  early-2023 numeric codes / 2023+ current format), `playlist-gig.txt` parsing map with
+  genre/language group structure, `keys.txt` section guide with full-English→shorthand key
+  normalisation table, Spotify integration plan (Client Credentials flow, `enrich_spotify.py`
+  enrichment pass), analytics use-case motivation, and Ableton XML structure notes for future
+  automation.
+
 ### Fixed
 - **TravelCalculator: car assignment now based on person, not gig role** — the previous
   implementation used the gig role (keyboards→Car1, bass→Car2, etc.) as a proxy for which car
