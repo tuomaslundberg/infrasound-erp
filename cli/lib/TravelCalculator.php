@@ -10,7 +10,7 @@ require_once __DIR__ . '/RoutingHelper.php';
  * NOT by the gig role. The role describes what instrument someone plays; it has
  * no bearing on which car they travel in.
  *
- * Canonical flows (see AGENTS.md §travel-flows):
+ * Canonical flows:
  *
  * Car 1 (Caddy + trailer):
  *   transport_mode='car_owner', default_car=1 → driver (Tuomas)
@@ -100,7 +100,17 @@ class TravelCalculator
         foreach ($personnel as $p) {
             // transport_override on the gig row overrides the user-level transport_mode.
             // default_car always comes from the user, never from the gig.
-            $effectiveMode = $p['transport_override'] ?? $p['transport_mode'];
+            $overrideMode  = $p['transport_override'];
+            $baseMode      = $p['transport_mode'];
+            $effectiveMode = $overrideMode ?? $baseMode;
+
+            // transport_override='car_owner' means "drives own non-band car this gig, not billed"
+            // (distinct from transport_mode='car_owner' = designated band car driver).
+            // Normalise to 'local' so the exclusion logic below handles both identically.
+            if ($overrideMode === 'car_owner') {
+                $effectiveMode = 'local';
+            }
+
             $defaultCar    = (int)($p['default_car'] ?? 1);
 
             $lat       = isset($p['home_lat']) ? (float)$p['home_lat'] : null;
@@ -110,6 +120,11 @@ class TravelCalculator
             if ($effectiveMode === 'local') {
                 // Drives own car to venue, not billed. No pickup.
                 $warnings[] = "{$p['username']} drives own car (local) — excluded from Car 1 and Car 2 routes.";
+                continue;
+            }
+
+            if ($effectiveMode === 'public_transport') {
+                // Travels independently by train/bus; no band car pickup needed or billed.
                 continue;
             }
 
@@ -164,6 +179,15 @@ class TravelCalculator
         }
         if ($car2Driver !== null && $car2Km === null) {
             $warnings[] = 'Car 2 OSRM routing failed — check network and waypoint coordinates.';
+        }
+        if ($car2Driver === null && !empty($car2Stops)) {
+            // No Car 2 driver in lineup: fall back these passengers to Car 1.
+            // Car 1 (Caddy) has capacity; this handles any lineup that omits Mortti/Maxwell.
+            // Owner can override per-person with transport_override='local' if they drive themselves.
+            $stopNames = implode(', ', array_column($car2Stops, 'label'));
+            $warnings[] = "No Car 2 driver in lineup — Car 2 passenger(s) added to Car 1 route: $stopNames.";
+            $car1Stops = array_merge($car1Stops, $car2Stops);
+            $car2Stops = [];
         }
 
         $ferryCosts = 0.0;
