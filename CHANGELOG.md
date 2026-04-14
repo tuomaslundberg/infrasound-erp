@@ -7,7 +7,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **TravelCalculator: car assignment now based on person, not gig role** — the previous
+  implementation used the gig role (keyboards→Car1, bass→Car2, etc.) as a proxy for which car
+  someone travels in, which broke whenever roles were assigned to non-default musicians.
+  Assignment is now driven solely by `users.transport_mode` and the new `users.default_car`
+  column (1=Car1, 2=Car2), making it independent of the musical role in the gig.
+
 ### Added
+- `db/migrations/012_users_default_car.sql` — adds `default_car TINYINT(1)` to users;
+  seeds mortti.markkanen and lauri.lehtinen as Car 2 (default_car=2)
+
+### Changed
+- `TravelCalculator::calculateFromPersonnel()` — role parameter now ignored for car assignment;
+  uses transport_mode + default_car instead; `calculate()` fetches default_car from DB
+- `process_inquiry.php`, `webflow.php` — synthetic default lineup now passes default_car from DB;
+  `$defaultRoles` map removed as it was only needed for the old role-based logic
+
+---
+
+### Added (earlier)
 - **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
   create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
   and owner accounts; admin+ can also create admin accounts; developer accounts not creatable via UI
