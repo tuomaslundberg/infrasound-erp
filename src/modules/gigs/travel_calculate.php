@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../../cli/lib/TravelCalculator.php';
+require_once __DIR__ . '/../agent/lib/GeocodingHelper.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -14,9 +15,10 @@ if (!$gigId) {
     exit;
 }
 
-// Fetch gig + venue coordinates
+// Fetch gig + venue coordinates and address fields for on-demand geocoding.
 $stmt = $pdo->prepare(
-    "SELECT g.id, v.lat, v.lng, v.distance_from_turku_km
+    "SELECT g.id, v.id AS venue_id, v.lat, v.lng, v.distance_from_turku_km,
+            v.address_line, v.city, v.name AS venue_name
      FROM   gigs g
      LEFT JOIN venues v ON v.id = g.venue_id
      WHERE  g.id = ? AND g.deleted_at IS NULL"
@@ -29,8 +31,30 @@ if (!$row) {
     exit;
 }
 
+// If venue has no coordinates, attempt on-demand geocoding from address/city/name.
+// Legacy imported gigs have address data but were never run through the inquiry pipeline.
+if (($row['lat'] === null || $row['lng'] === null) && $row['venue_id'] !== null) {
+    $geocodeQuery = trim(($row['address_line'] ?? '') . ' ' . ($row['city'] ?? ''));
+    if ($geocodeQuery === '') {
+        $geocodeQuery = trim($row['venue_name'] ?? '');
+    }
+
+    $geo = $geocodeQuery !== '' ? GeocodingHelper::geocodeVenue($geocodeQuery, '') : null;
+
+    if ($geo !== null) {
+        $row['lat'] = $geo['lat'];
+        $row['lng'] = $geo['lng'];
+        // Persist coords; update distance_from_turku_km only if not already set.
+        $pdo->prepare(
+            "UPDATE venues SET lat = ?, lng = ?,
+                distance_from_turku_km = COALESCE(distance_from_turku_km, ?)
+             WHERE id = ?"
+        )->execute([$geo['lat'], $geo['lng'], $geo['distance_km'], $row['venue_id']]);
+    }
+}
+
 if ($row['lat'] === null || $row['lng'] === null) {
-    // Venue not geocoded yet — cannot run TravelCalculator
+    // Venue has no coordinates and no address to geocode from.
     header('Location: /gigs/' . $gigId . '?error=travel_no_venue_coords');
     exit;
 }
