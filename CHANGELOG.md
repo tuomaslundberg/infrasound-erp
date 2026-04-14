@@ -7,29 +7,62 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **TravelCalculator: `transport_override='car_owner'` treated as `local`** — schema
+  documents this override as "drives own non-band car this gig, not billed"; previously
+  the code incorrectly treated it as a band car driver assignment; now normalised to
+  `local` before the mode switch so it is excluded from both car routes
+- **TravelCalculator: `public_transport` users excluded from pickup routes** — were
+  silently falling into the passenger branch and receiving band car pickup waypoints;
+  now skipped (no warning, expected independent travel)
+- **TravelCalculator: Car 2 passengers fall back to Car 1 when no Car 2 driver** —
+  previously silently dropped from the route; now merged into Car 1 stops with a
+  warning; Car 1 (Caddy) has capacity for the full lineup
+- **Valtteri's transport_mode corrected to passenger/Car2** — was set to `car_owner`
+  under old role-based semantics; under the new person-based model this incorrectly made
+  him Car 1 driver and silently dropped the real Car 1 driver from the route. Now
+  `passenger` + `default_car=2`; gig-level override remains `transport_override='local'`
+  when he drives himself. Migration 013 updates the live row; musician_addresses.sql updated
+  to match.
+- **TravelCalculator: warn on duplicate car driver assignment** — previously the last
+  `car_owner` processed for a given car slot silently overwrote the first, causing the
+  real driver to vanish from the route with no indication. Now first-wins and a warning
+  is emitted for the duplicate.
+- **TravelCalculator: car assignment now based on person, not gig role** — the previous
+  implementation used the gig role (keyboards→Car1, bass→Car2, etc.) as a proxy for which car
+  someone travels in, which broke whenever roles were assigned to non-default musicians.
+  Assignment is now driven solely by `users.transport_mode` and the new `users.default_car`
+  column (1=Car1, 2=Car2), making it independent of the musical role in the gig.
+- `travel_calculate.php` — on-demand geocoding for legacy venues: if a venue has address/city
+  but no lat/lng (imported before inquiry pipeline existed), geocode via Nominatim on "Recalculate
+  travel", persist coords to the venue row, then run TravelCalculator normally; no-address venues
+  still show the existing warning
+
 ### Added
-- **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
-  create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
-  and owner accounts; admin+ can also create admin accounts; developer accounts not creatable via UI
-- **Self-service password change** — `/account/password` available to all authenticated roles;
-  verifies current password before accepting new one
-- **Webflow webhook endpoint** — `/webhook/webflow` (public, token-authenticated); receives Webflow
-  V1/V2 form-submission JSON; routes "Email Form" through AI extraction pipeline and "Tilauslomake"
-  through direct field mapping; creates gig entities with `channel=saturday_band, status=inquiry`
-- `src/modules/agent/lib/GigCreator.php` — shared gig entity creation transaction (customer →
-  contact → venue → gig); extracted from `process_inquiry.php` for reuse by webhook handler
-- `src/templates/layout.php` — added Users and Password nav links
-- `.env.example` — added `WEBFLOW_WEBHOOK_SECRET`
+- **Route calculation transparency** — TravelCalculator now returns labelled waypoints and
+  per-leg km for each car route; stored as `car1_route_json` / `car2_route_json` (TEXT) on the
+  `gigs` row; gig detail view shows a collapsible "Route detail" table with waypoints and leg
+  distances; "Recalculate travel" also writes route JSON on recalculation
+- `db/migrations/011_route_json.sql` — adds `car1_route_json` and `car2_route_json` columns
+- **Tilauslomake gigs created with `status=confirmed`** — booking confirmation form semantically
+  maps to confirmed, not inquiry; `GigCreator::create()` now accepts an optional `$status` param
+  (default `'inquiry'`); Tilauslomake handler passes `'confirmed'`
+- **Webflow payload preserved in `order_description`** — Tilauslomake builds a concise summary
+  string (`Tilauslomake – {date} – {customer}`); Email Form falls back raw message text if AI
+  extraction leaves `order_description` empty
+- `db/migrations/012_users_default_car.sql` — adds `default_car TINYINT(1)` to users;
+  seeds mortti.markkanen and lauri.lehtinen as Car 2 (default_car=2)
 
 ### Changed
-- `src/modules/agent/process_inquiry.php` — refactored to use `GigCreator::create()`; no
-  behaviour change
-- `config/db.php` — dotenv loader for bare-PHP deployments (Plesk); reads `.env` from repo
-  root when env vars are not injected by Docker; no-op when vars already set (Docker compat)
-- `src/modules/admin/migrations.php` — web migration runner at `/admin/migrations`; creates
-  `schema_migrations` tracking table; lists pending/applied migrations; applies one at a time
-- `src/modules/admin/geocode_musicians.php` — admin HTTP endpoint at `/admin/geocode-musicians`;
-  replaces CLI-only `geocode_musicians.php` for Plesk deployments; shows current geocoding state
+- `RoutingHelper::waypointRouteKm()` — delegates to new `waypointRouteDetail()` (no behaviour change)
+- `RoutingHelper::waypointRouteDetail()` — new method; returns `{total_km, legs_km[]}` from OSRM
+- `TravelCalculator::calculateFromPersonnel()` — now returns `car1_route` and `car2_route` arrays
+  with labelled waypoints; car assignment based on transport_mode + default_car (not role)
+- `GigCreator::create()` — includes `car1_route_json` / `car2_route_json` in INSERT; added
+  optional `$status` parameter (default `'inquiry'`) with ENUM validation
+- `src/modules/gigs/travel_calculate.php` — UPDATE writes route JSON on recalculation
+- `process_inquiry.php`, `webflow.php` — synthetic default lineup passes default_car from DB;
+  `$defaultRoles` map removed
 
 ---
 

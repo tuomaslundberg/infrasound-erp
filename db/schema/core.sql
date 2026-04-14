@@ -148,6 +148,9 @@ CREATE TABLE IF NOT EXISTS gigs (
     car1_distance_km        DECIMAL(7,1)             DEFAULT NULL,
     car2_distance_km        DECIMAL(7,1)             DEFAULT 0.0,
     other_travel_costs_cents INT                     DEFAULT 0,
+    -- Route detail JSON shape: {"waypoints":[{"label":"tuomas (Car 1 driver)","lat":60.451,"lng":22.267}],"one_way_km":42.3,"legs_km":[3.8,5.1,33.4]}
+    car1_route_json         TEXT                     DEFAULT NULL,
+    car2_route_json         TEXT                     DEFAULT NULL,
     -- Granular pricing inputs (see PriceCalculator; persisted so the edit form pre-populates)
     pricing_tier1            TINYINT(1)              NOT NULL DEFAULT 0, -- on-season Saturday flag
     pricing_tier2            TINYINT(1)              NOT NULL DEFAULT 0, -- high-demand date flag
@@ -187,9 +190,9 @@ CREATE TABLE IF NOT EXISTS gig_personnel (
                        ) NOT NULL DEFAULT 'other',
     fee_cents          INT                     DEFAULT NULL,
     -- transport_override: NULL = use users.transport_mode default
-    --   passenger  = rides Car 2 pickup (Valtteri typical case when car_owner)
-    --   local      = skip out-of-town pickup (Lauri already in Turku)
-    --   car_owner  = drives own car this gig (warn; not billed in Car 1/2)
+    --   passenger  = overrides to band car passenger for this gig
+    --   local      = drives own car to venue, not billed (e.g. Lauri already in Turku)
+    --   car_owner  = drives own non-band car this gig, not billed (treated same as local by TravelCalculator)
     transport_override ENUM('car_owner','passenger','local') DEFAULT NULL,
     confirmed_at       DATETIME                DEFAULT NULL,
     created_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -284,9 +287,16 @@ CREATE TABLE IF NOT EXISTS users (
     home_address   VARCHAR(255)           DEFAULT NULL,
     home_lat       DECIMAL(9,6)           DEFAULT NULL,
     home_lng       DECIMAL(9,6)           DEFAULT NULL,
-    -- transport_mode: car_owner = has own vehicle; passenger = always needs a lift
+    -- transport_mode: car_owner = designated driver of a billed band car (Tuomas=Car1, Mortti/Maxwell=Car2);
+    --   passenger = needs a lift in a band car; public_transport = travels independently (train/bus), no pickup.
+    --   Note: 'local' (drives own car to venue, unbilled) is only a gig_personnel.transport_override value.
     transport_mode ENUM('car_owner','passenger','public_transport')
                                  NOT NULL DEFAULT 'passenger',
+    -- default_car: which band car this person belongs to by default (1=Caddy/Car1, 2=Car2).
+    -- car_owner with default_car=1 → Car 1 driver (Tuomas); default_car=2 → Car 2 driver (Mortti/Maxwell).
+    -- passenger with default_car=1 → Car 1 stop; default_car=2 → Car 2 pickup (e.g. Lauri, Helsinki).
+    -- Gig-level overrides go on gig_personnel.transport_override.
+    default_car    TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
     password_hash  VARCHAR(255)  NOT NULL,
     role           ENUM(
                        'developer',

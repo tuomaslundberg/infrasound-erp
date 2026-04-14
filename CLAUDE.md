@@ -25,6 +25,16 @@ Stack: PHP 8.2 + Apache · MariaDB 10.11 · Vue 3 + Bootstrap 5 · Docker
 
 ---
 
+## Branch strategy
+
+- `main` — production; only receives PRs from `dev`
+- `dev` — integration branch; receives PRs from feature branches
+- `feat/<topic>` — all new work; branched from `dev`, merged back to `dev` via PR
+- Hotfixes: `fix/<topic>` branched from `dev` (or `main` if truly urgent)
+- **Never commit new features directly to `dev` or `main`**
+
+---
+
 ## Workflow rules
 
 - **Always ask** before introducing a new architectural pattern or dependency

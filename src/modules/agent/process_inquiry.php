@@ -86,30 +86,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'tuomas.lundberg', 'toni.puttonen', 'joni.virtanen',
             'alina.kangas', 'lauri.lehtinen', 'mortti.markkanen',
         ];
-        // Role assignments for synthetic default lineup
-        $defaultRoles = [
-            'tuomas.lundberg' => 'keyboards',
-            'toni.puttonen'   => 'sound_engineering',
-            'joni.virtanen'   => 'drums',
-            'alina.kangas'    => 'vocals',
-            'lauri.lehtinen'  => 'guitar',
-            'mortti.markkanen'=> 'bass',
-        ];
         $placeholders = implode(',', array_fill(0, count($defaultUsernames), '?'));
         $userStmt = $pdo->prepare(
-            "SELECT username, home_lat, home_lng, transport_mode
+            "SELECT username, home_lat, home_lng, transport_mode, default_car
              FROM   users WHERE username IN ($placeholders) AND deleted_at IS NULL"
         );
         $userStmt->execute($defaultUsernames);
         $defaultUsers = $userStmt->fetchAll(PDO::FETCH_ASSOC);
 
         $synthPersonnel = array_map(fn($u) => [
-            'role'               => $defaultRoles[$u['username']] ?? 'other',
+            'role'               => 'other', // role is irrelevant; transport_mode + default_car drive assignment
             'transport_override' => null,
             'username'           => $u['username'],
             'home_lat'           => $u['home_lat'],
             'home_lng'           => $u['home_lng'],
             'transport_mode'     => $u['transport_mode'],
+            'default_car'        => $u['default_car'],
         ], $defaultUsers);
 
         $travel = TravelCalculator::calculateFromPersonnel(
@@ -120,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $car1Km           = $travel['car1_km'];
         $car2Km           = $travel['car2_km'] ?? 0;
         $otherTravelCents = (int)round($travel['ferry_costs_eur'] * 100);
+        $car1Route        = $travel['car1_route'] ?? null;
+        $car2Route        = $travel['car2_route'] ?? null;
     }
 
     // --- Price calculation with extracted inputs (baseline) -------------------
@@ -169,6 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'car2_km'            => $car2Km,
             'other_travel_cents' => $otherTravelCents,
             'base_price_cents'   => $basePriceCents,
+            'car1_route'         => $car1Route ?? null,
+            'car2_route'         => $car2Route ?? null,
         ], 'mail');
     } catch (RuntimeException $e) {
         error_log('Agent inquiry save failed: ' . $e->getMessage());
