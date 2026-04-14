@@ -169,6 +169,15 @@ class TravelCalculator
             }
         }
 
+        // Car 2 fallback: if no Car 2 driver, roll Car 2 passengers into Car 1.
+        // Must happen before computeCarRouteDetail so they appear in the route.
+        if ($car2Driver === null && !empty($car2Stops)) {
+            $stopNames = implode(', ', array_column($car2Stops, 'label'));
+            $warnings[] = "No Car 2 driver in lineup — Car 2 passenger(s) added to Car 1 route: $stopNames.";
+            $car1Stops = array_merge($car1Stops, $car2Stops);
+            $car2Stops = [];
+        }
+
         $car1Result = self::computeCarRouteDetail($car1Driver, $car1Stops, $venueLat, $venueLng, true);
         $car2Result = self::computeCarRouteDetail($car2Driver, $car2Stops, $venueLat, $venueLng, false);
         $car1Km = $car1Result['km'];
@@ -179,15 +188,6 @@ class TravelCalculator
         }
         if ($car2Driver !== null && $car2Km === null) {
             $warnings[] = 'Car 2 OSRM routing failed — check network and waypoint coordinates.';
-        }
-        if ($car2Driver === null && !empty($car2Stops)) {
-            // No Car 2 driver in lineup: fall back these passengers to Car 1.
-            // Car 1 (Caddy) has capacity; this handles any lineup that omits Mortti/Maxwell.
-            // Owner can override per-person with transport_override='local' if they drive themselves.
-            $stopNames = implode(', ', array_column($car2Stops, 'label'));
-            $warnings[] = "No Car 2 driver in lineup — Car 2 passenger(s) added to Car 1 route: $stopNames.";
-            $car1Stops = array_merge($car1Stops, $car2Stops);
-            $car2Stops = [];
         }
 
         $ferryCosts = 0.0;
