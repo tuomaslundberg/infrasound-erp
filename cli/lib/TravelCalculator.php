@@ -181,8 +181,13 @@ class TravelCalculator
             $warnings[] = 'Car 2 OSRM routing failed — check network and waypoint coordinates.';
         }
         if ($car2Driver === null && !empty($car2Stops)) {
+            // No Car 2 driver in lineup: fall back these passengers to Car 1.
+            // Car 1 (Caddy) has capacity; this handles any lineup that omits Mortti/Maxwell.
+            // Owner can override per-person with transport_override='local' if they drive themselves.
             $stopNames = implode(', ', array_column($car2Stops, 'label'));
-            $warnings[] = "Car 2 passenger(s) have no driver — not included in any route: $stopNames. Add a Car 2 driver or set transport_override='local'.";
+            $warnings[] = "No Car 2 driver in lineup — Car 2 passenger(s) added to Car 1 route: $stopNames.";
+            $car1Stops = array_merge($car1Stops, $car2Stops);
+            $car2Stops = [];
         }
 
         $ferryCosts = 0.0;

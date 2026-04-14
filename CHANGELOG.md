@@ -15,8 +15,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **TravelCalculator: `public_transport` users excluded from pickup routes** — were
   silently falling into the passenger branch and receiving band car pickup waypoints;
   now skipped (no warning, expected independent travel)
-- **TravelCalculator: warn when Car 2 passengers have no driver** — previously these
-  personnel were silently dropped; now a named warning lists the affected passengers
+- **TravelCalculator: Car 2 passengers fall back to Car 1 when no Car 2 driver** —
+  previously silently dropped from the route; now merged into Car 1 stops with a
+  warning; Car 1 (Caddy) has capacity for the full lineup
 - **Valtteri's transport_mode corrected to passenger/Car2** — was set to `car_owner`
   under old role-based semantics; under the new person-based model this incorrectly made
   him Car 1 driver and silently dropped the real Car 1 driver from the route. Now
