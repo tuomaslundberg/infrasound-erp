@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **TravelCalculator: `transport_override='car_owner'` treated as `local`** — schema
+  documents this override as "drives own non-band car this gig, not billed"; previously
+  the code incorrectly treated it as a band car driver assignment; now normalised to
+  `local` before the mode switch so it is excluded from both car routes
+- **TravelCalculator: `public_transport` users excluded from pickup routes** — were
+  silently falling into the passenger branch and receiving band car pickup waypoints;
+  now skipped (no warning, expected independent travel)
+- **TravelCalculator: warn when Car 2 passengers have no driver** — previously these
+  personnel were silently dropped; now a named warning lists the affected passengers
 - **Valtteri's transport_mode corrected to passenger/Car2** — was set to `car_owner`
   under old role-based semantics; under the new person-based model this incorrectly made
   him Car 1 driver and silently dropped the real Car 1 driver from the route. Now
