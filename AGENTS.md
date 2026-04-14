@@ -79,18 +79,23 @@ Infrastructure
 ├── Makefile                 ← make up / make dev / make seed / make down
 ├── AGENTS.md
 ├── CLAUDE.md
+├── TONI.md                  ← onboarding doc for Toni Puttonen (and his AI agents)
 ├── README.md
 ├── CHANGELOG.md
-├── TODO.md                  ← read-only legacy reference; superseded by ~/iCloud/context/todos.md
+├── todos.md                 ← version-controlled ERP task list (Tuomas + Toni collaboration)
+├── TODO.md                  ← read-only legacy reference; canonical tasks now in todos.md
 │
 ├── /src
 │   ├── index.php
 │   ├── api/
 │   ├── modules/
+│   │   ├── admin/           ← admin UI pages (gigs, users, venues, migrations)
+│   │   ├── agent/           ← AI inquiry pipeline (InquiryExtractor, GigCreator, etc.)
 │   │   ├── customers/
 │   │   ├── gigs/
 │   │   ├── invoicing/
-│   │   └── accounting/
+│   │   ├── accounting/
+│   │   └── webhook/         ← Webflow webhook handler (Email Form + Tilauslomake)
 │   ├── templates/
 │   └── assets/
 │
@@ -194,9 +199,13 @@ Security decisions must be conservative.
 ⸻
 
 10. Development Workflow
-	•	Single main branch
-	•	Short-lived feature branches
-	•	No long-lived legacy branches
+
+Branch strategy:
+	•	`main` — production; only receives PRs from `dev`
+	•	`dev` — integration branch; receives PRs from feature branches
+	•	`feat/<topic>` — all new work; branched from `dev`, merged back to `dev` via PR
+	•	`fix/<topic>` — bug fixes; branched from `dev` (or `main` if truly urgent)
+	•	Never commit new features directly to `dev` or `main`
 
 Every feature should:
 	•	Solve a concrete business problem
