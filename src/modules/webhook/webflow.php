@@ -163,6 +163,11 @@ function handleEmailForm(PDO $pdo, array $data): int
         $fields['contact_email'] = $email;
     }
 
+    // Fall back to raw message if AI extraction left order_description empty.
+    if (empty($fields['order_description']) && $message !== '') {
+        $fields['order_description'] = mb_substr($message, 0, 255);
+    }
+
     return runPipelineAndCreate($pdo, $fields, 'saturday_band');
 }
 
@@ -199,6 +204,18 @@ function handleTilauslomake(PDO $pdo, array $data): int
     }
     $notes = $notesParts ? implode("\n", $notesParts) : null;
 
+    // Build a concise order_description from structured fields.
+    $descParts = ['Tilauslomake'];
+    if ($gigDate !== null) {
+        $descParts[] = $gigDate;
+    } elseif ($dateRaw !== '') {
+        $descParts[] = $dateRaw;
+    }
+    if ($customerName !== '') {
+        $descParts[] = $customerName;
+    }
+    $orderDesc = mb_substr(implode(' – ', $descParts), 0, 255);
+
     $fields = [
         'customer_name'      => $customerName,
         'customer_type'      => $customerType,
@@ -210,17 +227,17 @@ function handleTilauslomake(PDO $pdo, array $data): int
         'contact_last_name'  => $lastName,
         'contact_email'      => $email ?: null,
         'contact_phone'      => $phone ?: null,
-        'order_description'  => null,
+        'order_description'  => $orderDesc,
         'notes'              => $notes,
     ];
 
-    return runPipelineAndCreate($pdo, $fields, 'saturday_band');
+    return runPipelineAndCreate($pdo, $fields, 'saturday_band', 'confirmed');
 }
 
 /**
  * Shared geocoding + travel + price calculation + GigCreator::create().
  */
-function runPipelineAndCreate(PDO $pdo, array $fields, string $channel): int
+function runPipelineAndCreate(PDO $pdo, array $fields, string $channel, string $status = 'inquiry'): int
 {
     $venueName    = trim($fields['venue_name']    ?? '');
     $venueAddress = trim($fields['venue_address'] ?? '') ?: null;
@@ -310,5 +327,5 @@ function runPipelineAndCreate(PDO $pdo, array $fields, string $channel): int
         'car2_km'            => $car2Km,
         'other_travel_cents' => $otherTravelCents,
         'base_price_cents'   => $basePriceCents,
-    ]), $channel);
+    ]), $channel, $status);
 }

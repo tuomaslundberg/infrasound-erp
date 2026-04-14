@@ -37,10 +37,12 @@ class GigCreator
      * @param  PDO    $pdo
      * @param  array  $fields  See class docblock for expected keys.
      * @param  string $channel ENUM value from gigs.channel (e.g. 'mail', 'saturday_band')
+     * @param  string $status  ENUM value from gigs.status (default 'inquiry')
      * @return int             ID of the newly created gig row.
      * @throws RuntimeException on database failure.
+     * @throws \InvalidArgumentException if $status is not a valid enum value.
      */
-    public static function create(PDO $pdo, array $fields, string $channel): int
+    public static function create(PDO $pdo, array $fields, string $channel, string $status = 'inquiry'): int
     {
         $customerName    = $fields['customer_name']      ?? 'Unknown';
         $customerType    = $fields['customer_type']      ?? 'other';
@@ -64,6 +66,9 @@ class GigCreator
 
         if (!in_array($customerType, ['wedding', 'company', 'other'], true)) {
             $customerType = 'other';
+        }
+        if (!in_array($status, ['inquiry', 'quoted', 'confirmed', 'delivered', 'cancelled', 'declined'], true)) {
+            throw new \InvalidArgumentException("Invalid gig status: $status");
         }
         if ($customerName === '') $customerName = 'Unknown';
         if ($venueName    === '') $venueName    = 'Unknown';
@@ -134,10 +139,10 @@ class GigCreator
                     qty_ennakkoroudaus, qty_song_requests_extra, qty_extra_performances,
                     qty_background_music_h, qty_live_album, discount_cents,
                     notes)
-                 VALUES (?, ?, ?, ?, 'inquiry', ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
             )->execute([
                 $customerId, $contactId, $venueId, $gigDate,
-                $channel, $customerType, $orderDesc,
+                $status, $channel, $customerType, $orderDesc,
                 $basePriceCents, $basePriceCents,
                 $car1Km, $car2Km ?? 0, $otherTravelCents,
                 $notes,

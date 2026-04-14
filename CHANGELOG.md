@@ -8,6 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Tilauslomake gigs created with `status=confirmed`** — booking confirmation form semantically
+  maps to confirmed, not inquiry; `GigCreator::create()` now accepts an optional `$status` param
+  (default `'inquiry'`); Tilauslomake handler passes `'confirmed'`
+- **Webflow payload preserved in `order_description`** — Tilauslomake builds a concise summary
+  string (`Tilauslomake – {date} – {customer}`); Email Form falls back raw message text if AI
+  extraction leaves `order_description` empty
+
+### Changed
+- `GigCreator::create()` — added optional `$status` parameter (default `'inquiry'`); validates
+  against the full `gigs.status` ENUM; replaces hard-coded `'inquiry'` literal in INSERT
+
+---
+
+### Added (previous)
 - **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
   create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
   and owner accounts; admin+ can also create admin accounts; developer accounts not creatable via UI
