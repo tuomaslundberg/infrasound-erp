@@ -148,6 +148,9 @@ CREATE TABLE IF NOT EXISTS gigs (
     car1_distance_km        DECIMAL(7,1)             DEFAULT NULL,
     car2_distance_km        DECIMAL(7,1)             DEFAULT 0.0,
     other_travel_costs_cents INT                     DEFAULT 0,
+    -- Route detail JSON: {"waypoints":[{"label","lat","lng"}],"one_way_km","legs_km":[]}
+    car1_route_json         TEXT                     DEFAULT NULL,
+    car2_route_json         TEXT                     DEFAULT NULL,
     -- Granular pricing inputs (see PriceCalculator; persisted so the edit form pre-populates)
     pricing_tier1            TINYINT(1)              NOT NULL DEFAULT 0, -- on-season Saturday flag
     pricing_tier2            TINYINT(1)              NOT NULL DEFAULT 0, -- high-demand date flag

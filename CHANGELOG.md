@@ -8,6 +8,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Route calculation transparency** — TravelCalculator now returns labelled waypoints and
+  per-leg km for each car route; stored as `car1_route_json` / `car2_route_json` (TEXT) on the
+  `gigs` row; gig detail view shows a collapsible "Route detail" table with waypoints and leg
+  distances; "Recalculate travel" also writes route JSON on recalculation
+- `db/migrations/011_route_json.sql` — adds `car1_route_json` and `car2_route_json` columns
+
+### Changed
+- `RoutingHelper::waypointRouteKm()` — delegates to new `waypointRouteDetail()` (no behaviour change)
+- `RoutingHelper::waypointRouteDetail()` — new method; returns `{total_km, legs_km[]}` from OSRM
+- `TravelCalculator::calculateFromPersonnel()` — now returns `car1_route` and `car2_route` arrays
+  alongside existing keys; all waypoints carry labels for display
+- `GigCreator::create()` — includes `car1_route_json` / `car2_route_json` in INSERT
+- `src/modules/gigs/travel_calculate.php` — UPDATE writes route JSON on recalculation
+
+---
+
+### Added (previous)
 - **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
   create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
   and owner accounts; admin+ can also create admin accounts; developer accounts not creatable via UI

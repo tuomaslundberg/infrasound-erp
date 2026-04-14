@@ -281,6 +281,8 @@ function runPipelineAndCreate(PDO $pdo, array $fields, string $channel): int
         $car1Km           = $travel['car1_km'];
         $car2Km           = $travel['car2_km'] ?? 0;
         $otherTravelCents = (int)round($travel['ferry_costs_eur'] * 100);
+        $car1Route        = $travel['car1_route'] ?? null;
+        $car2Route        = $travel['car2_route'] ?? null;
     }
 
     // Price calculation.
@@ -310,5 +312,7 @@ function runPipelineAndCreate(PDO $pdo, array $fields, string $channel): int
         'car2_km'            => $car2Km,
         'other_travel_cents' => $otherTravelCents,
         'base_price_cents'   => $basePriceCents,
+        'car1_route'         => $car1Route ?? null,
+        'car2_route'         => $car2Route ?? null,
     ]), $channel);
 }

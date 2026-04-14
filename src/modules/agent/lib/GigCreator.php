@@ -61,6 +61,8 @@ class GigCreator
         $car2Km          = $fields['car2_km']            ?? null;
         $otherTravelCents = (int)($fields['other_travel_cents'] ?? 0);
         $basePriceCents  = (int)($fields['base_price_cents']    ?? 0);
+        $car1RouteJson   = isset($fields['car1_route']) ? json_encode($fields['car1_route']) : null;
+        $car2RouteJson   = isset($fields['car2_route']) ? json_encode($fields['car2_route']) : null;
 
         if (!in_array($customerType, ['wedding', 'company', 'other'], true)) {
             $customerType = 'other';
@@ -130,16 +132,18 @@ class GigCreator
                    (customer_id, contact_id, venue_id, gig_date, status, channel, customer_type,
                     order_description, base_price_cents, quoted_price_cents,
                     car1_distance_km, car2_distance_km, other_travel_costs_cents,
+                    car1_route_json, car2_route_json,
                     pricing_tier1, pricing_tier2,
                     qty_ennakkoroudaus, qty_song_requests_extra, qty_extra_performances,
                     qty_background_music_h, qty_live_album, discount_cents,
                     notes)
-                 VALUES (?, ?, ?, ?, 'inquiry', ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
+                 VALUES (?, ?, ?, ?, 'inquiry', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?)"
             )->execute([
                 $customerId, $contactId, $venueId, $gigDate,
                 $channel, $customerType, $orderDesc,
                 $basePriceCents, $basePriceCents,
                 $car1Km, $car2Km ?? 0, $otherTravelCents,
+                $car1RouteJson, $car2RouteJson,
                 $notes,
             ]);
             $gigId = (int)$pdo->lastInsertId();
