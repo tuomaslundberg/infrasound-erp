@@ -252,29 +252,22 @@ function runPipelineAndCreate(PDO $pdo, array $fields, string $channel): int
             'tuomas.lundberg', 'toni.puttonen', 'joni.virtanen',
             'alina.kangas', 'lauri.lehtinen', 'mortti.markkanen',
         ];
-        $defaultRoles = [
-            'tuomas.lundberg'  => 'keyboards',
-            'toni.puttonen'    => 'sound_engineering',
-            'joni.virtanen'    => 'drums',
-            'alina.kangas'     => 'vocals',
-            'lauri.lehtinen'   => 'guitar',
-            'mortti.markkanen' => 'bass',
-        ];
         $placeholders = implode(',', array_fill(0, count($defaultUsernames), '?'));
         $userStmt = $pdo->prepare(
-            "SELECT username, home_lat, home_lng, transport_mode
+            "SELECT username, home_lat, home_lng, transport_mode, default_car
              FROM   users WHERE username IN ($placeholders) AND deleted_at IS NULL"
         );
         $userStmt->execute($defaultUsernames);
         $defaultUsers = $userStmt->fetchAll(PDO::FETCH_ASSOC);
 
         $synthPersonnel = array_map(fn($u) => [
-            'role'               => $defaultRoles[$u['username']] ?? 'other',
+            'role'               => 'other', // role is irrelevant; transport_mode + default_car drive assignment
             'transport_override' => null,
             'username'           => $u['username'],
             'home_lat'           => $u['home_lat'],
             'home_lng'           => $u['home_lng'],
             'transport_mode'     => $u['transport_mode'],
+            'default_car'        => $u['default_car'],
         ], $defaultUsers);
 
         $travel = TravelCalculator::calculateFromPersonnel($synthPersonnel, $venueLat, $venueLng);

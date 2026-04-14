@@ -284,9 +284,14 @@ CREATE TABLE IF NOT EXISTS users (
     home_address   VARCHAR(255)           DEFAULT NULL,
     home_lat       DECIMAL(9,6)           DEFAULT NULL,
     home_lng       DECIMAL(9,6)           DEFAULT NULL,
-    -- transport_mode: car_owner = has own vehicle; passenger = always needs a lift
+    -- transport_mode: car_owner = drives a billed band car; passenger = needs a lift; local = own car, unbilled
     transport_mode ENUM('car_owner','passenger','public_transport')
                                  NOT NULL DEFAULT 'passenger',
+    -- default_car: which band car this person belongs to by default (1=Caddy/Car1, 2=Car2).
+    -- car_owner with default_car=1 → Car 1 driver (Tuomas); default_car=2 → Car 2 driver (Mortti/Maxwell).
+    -- passenger with default_car=1 → Car 1 stop; default_car=2 → Car 2 pickup (e.g. Lauri, Helsinki).
+    -- Gig-level overrides go on gig_personnel.transport_override.
+    default_car    TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
     password_hash  VARCHAR(255)  NOT NULL,
     role           ENUM(
                        'developer',

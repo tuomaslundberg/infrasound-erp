@@ -8,34 +8,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **TravelCalculator: car assignment now based on person, not gig role** — the previous
+  implementation used the gig role (keyboards→Car1, bass→Car2, etc.) as a proxy for which car
+  someone travels in, which broke whenever roles were assigned to non-default musicians.
+  Assignment is now driven solely by `users.transport_mode` and the new `users.default_car`
+  column (1=Car1, 2=Car2), making it independent of the musical role in the gig.
 - `travel_calculate.php` — on-demand geocoding for legacy venues: if a venue has address/city
   but no lat/lng (imported before inquiry pipeline existed), geocode via Nominatim on "Recalculate
   travel", persist coords to the venue row, then run TravelCalculator normally; no-address venues
   still show the existing warning
 
 ### Added
-- **User management UI** — `/admin/users` list, `/admin/users/new` and `/admin/users/{id}/edit`
-  create/edit forms, `/admin/users/{id}/delete` soft-delete handler; owners can create musician
-  and owner accounts; admin+ can also create admin accounts; developer accounts not creatable via UI
-- **Self-service password change** — `/account/password` available to all authenticated roles;
-  verifies current password before accepting new one
-- **Webflow webhook endpoint** — `/webhook/webflow` (public, token-authenticated); receives Webflow
-  V1/V2 form-submission JSON; routes "Email Form" through AI extraction pipeline and "Tilauslomake"
-  through direct field mapping; creates gig entities with `channel=saturday_band, status=inquiry`
-- `src/modules/agent/lib/GigCreator.php` — shared gig entity creation transaction (customer →
-  contact → venue → gig); extracted from `process_inquiry.php` for reuse by webhook handler
-- `src/templates/layout.php` — added Users and Password nav links
-- `.env.example` — added `WEBFLOW_WEBHOOK_SECRET`
+- `db/migrations/012_users_default_car.sql` — adds `default_car TINYINT(1)` to users;
+  seeds mortti.markkanen and lauri.lehtinen as Car 2 (default_car=2)
 
 ### Changed
-- `src/modules/agent/process_inquiry.php` — refactored to use `GigCreator::create()`; no
-  behaviour change
-- `config/db.php` — dotenv loader for bare-PHP deployments (Plesk); reads `.env` from repo
-  root when env vars are not injected by Docker; no-op when vars already set (Docker compat)
-- `src/modules/admin/migrations.php` — web migration runner at `/admin/migrations`; creates
-  `schema_migrations` tracking table; lists pending/applied migrations; applies one at a time
-- `src/modules/admin/geocode_musicians.php` — admin HTTP endpoint at `/admin/geocode-musicians`;
-  replaces CLI-only `geocode_musicians.php` for Plesk deployments; shows current geocoding state
+- `TravelCalculator::calculateFromPersonnel()` — role parameter now ignored for car assignment;
+  uses transport_mode + default_car instead; `calculate()` fetches default_car from DB
+- `process_inquiry.php`, `webflow.php` — synthetic default lineup now passes default_car from DB;
+  `$defaultRoles` map removed as it was only needed for the old role-based logic
 
 ---
 
