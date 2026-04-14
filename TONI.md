@@ -31,7 +31,7 @@ Tuomas makes final calls on architecture, prod deployments, and DB schema change
 |------|-----------|
 | `CLAUDE.md` | Coding conventions, branch rules, what not to do |
 | `AGENTS.md` | Architecture spec — authoritative for all contributors and AI agents |
-| `todos.md` | Current task list — check here before starting anything |
+| `TODO.md` | ERP collaborative task list — check here before starting anything |
 | `CHANGELOG.md` | History of every functional change |
 | `db/schema/core.sql` | Authoritative DB schema reference |
 
@@ -73,7 +73,7 @@ The dev DB is `fi_infrasound_dev` — completely separate from prod data.
 
 ## Good first tasks
 
-Items marked `[copilot]` in `todos.md` are well-scoped and good for AI-assisted work:
+Items marked `[copilot]` in `TODO.md` are well-scoped and good for AI-assisted work:
 - **Venue edit UI** — straightforward CRUD form, clear spec
 - **Default lineup auto-fill** — small button + DB insert, well-defined
 - **Setlist builder polish** — reactive UI, bounded scope
@@ -93,7 +93,7 @@ all the conventions. Key things agents must follow:
 - Soft deletes (`deleted_at`) — never hard DELETE
 - Monetary values as integers (eurocents)
 - Always update `CHANGELOG.md` on functional changes
-- Never commit `.env`
+- Never commit `.env` or `.env.dev` — never read them either; use `.env.example` / `.env.dev.example` as reference
 
 For Claude Code: launch from the repo root. It will pick up `CLAUDE.md` automatically.
 
