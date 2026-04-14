@@ -127,11 +127,19 @@ independent of the invoicing ETL and can proceed in either order.
 Key files:
 - `cli/etl/SETLIST_ETL_SPEC.md` — full spec (source files, format eras, schema, Spotify plan)
 - `db/migrations/008_setlists.sql` — songs/setlists/setlist_songs schema (already applied)
-- `db/migrations/013_songs_extension.sql` — songs metadata + setlists.set_type (apply before ETL)
+- `db/migrations/014_songs_extension.sql` — songs metadata + setlists.set_type (NOT YET applied)
 
-Next step for setlist ETL: set up Spotify Developer credentials (`SPOTIFY_CLIENT_ID`,
-`SPOTIFY_CLIENT_SECRET` in `.env`), then implement `extract_songs.py` followed by
-`enrich_spotify.py`. See spec for full prerequisites and output file plan.
+Prerequisites completed: Spotify Developer app created (Client Credentials, HTTPS redirect URI);
+`SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` in `.env`, `.env.dev`, and prod `.env`;
+`spotipy>=2.23` added to `cli/etl/requirements.txt`.
+
+Next steps (in order):
+1. Apply migration 014 to dev: `make migrate-dev FILE=db/migrations/014_songs_extension.sql`
+2. Implement `cli/etl/extract_songs.py` → `db/seeds/legacy_songs.sql`
+3. Implement `cli/etl/extract_setlists.py` → `db/seeds/legacy_setlists.sql`
+4. Implement `cli/etl/enrich_spotify.py` → `db/seeds/legacy_spotify.sql`
+
+Branch: `feat/setlist-etl`. See spec for full output file plan and parsing rules.
 
 ---
 
