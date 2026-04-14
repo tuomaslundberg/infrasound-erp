@@ -117,14 +117,18 @@ class TravelCalculator
                 // This person drives a band car.
                 if ($defaultCar === 2) {
                     // Car 2 driver (Mortti, Maxwell).
-                    if (!$hasCoords) {
+                    if ($car2Driver !== null) {
+                        $warnings[] = "Duplicate Car 2 driver: {$p['username']} ignored — {$car2Driver['label']} already assigned. Check users.default_car and transport_mode.";
+                    } elseif (!$hasCoords) {
                         $warnings[] = "Car 2 driver ({$p['username']}) has no home coordinates — Car 2 route unavailable.";
                     } else {
                         $car2Driver = ['lat' => $lat, 'lng' => $lng, 'label' => "{$p['username']} (Car 2 driver)"];
                     }
                 } else {
                     // Car 1 driver (Tuomas).
-                    if (!$hasCoords) {
+                    if ($car1Driver !== null) {
+                        $warnings[] = "Duplicate Car 1 driver: {$p['username']} ignored — {$car1Driver['label']} already assigned. Check users.default_car and transport_mode.";
+                    } elseif (!$hasCoords) {
                         $warnings[] = "Car 1 driver ({$p['username']}) has no home coordinates — Car 1 route unavailable.";
                     } else {
                         $car1Driver = ['lat' => $lat, 'lng' => $lng, 'label' => "{$p['username']} (Car 1 driver)"];

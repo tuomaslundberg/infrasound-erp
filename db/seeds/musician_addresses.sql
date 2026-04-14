@@ -51,10 +51,10 @@ UPDATE users SET
     transport_mode = 'car_owner'
 WHERE username = 'maxwell.mbare';
 
--- Car 2 pickup (sound engineering — Valtteri; has own car but typically picked up)
--- transport_mode = car_owner so TravelCalculator defaults to Car 2 pickup;
--- owner sets gig_personnel.transport_override = 'car_owner' when Valtteri drives himself.
+-- Car 2 passenger (sound engineering — Valtteri; rides Car 2 by default)
+-- When he drives himself to a gig, set gig_personnel.transport_override = 'local'.
 UPDATE users SET
     home_address   = 'Kaarina, Varsinais-Suomi',
-    transport_mode = 'car_owner'
+    transport_mode = 'passenger',
+    default_car    = 2
 WHERE username = 'valtteri.alanen';

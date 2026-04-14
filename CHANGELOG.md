@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **Valtteri's transport_mode corrected to passenger/Car2** — was set to `car_owner`
+  under old role-based semantics; under the new person-based model this incorrectly made
+  him Car 1 driver and silently dropped the real Car 1 driver from the route. Now
+  `passenger` + `default_car=2`; gig-level override remains `transport_override='local'`
+  when he drives himself. Migration 013 updates the live row; musician_addresses.sql updated
+  to match.
+- **TravelCalculator: warn on duplicate car driver assignment** — previously the last
+  `car_owner` processed for a given car slot silently overwrote the first, causing the
+  real driver to vanish from the route with no indication. Now first-wins and a warning
+  is emitted for the duplicate.
 - **TravelCalculator: car assignment now based on person, not gig role** — the previous
   implementation used the gig role (keyboards→Car1, bass→Car2, etc.) as a proxy for which car
   someone travels in, which broke whenever roles were assigned to non-default musicians.
