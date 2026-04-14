@@ -19,10 +19,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   still show the existing warning
 
 ### Added
+- **Tilauslomake gigs created with `status=confirmed`** — booking confirmation form semantically
+  maps to confirmed, not inquiry; `GigCreator::create()` now accepts an optional `$status` param
+  (default `'inquiry'`); Tilauslomake handler passes `'confirmed'`
+- **Webflow payload preserved in `order_description`** — Tilauslomake builds a concise summary
+  string (`Tilauslomake – {date} – {customer}`); Email Form falls back raw message text if AI
+  extraction leaves `order_description` empty
 - `db/migrations/012_users_default_car.sql` — adds `default_car TINYINT(1)` to users;
   seeds mortti.markkanen and lauri.lehtinen as Car 2 (default_car=2)
 
 ### Changed
+- `GigCreator::create()` — added optional `$status` parameter (default `'inquiry'`); validates
+  against the full `gigs.status` ENUM; replaces hard-coded `'inquiry'` literal in INSERT
 - `TravelCalculator::calculateFromPersonnel()` — role parameter now ignored for car assignment;
   uses transport_mode + default_car instead; `calculate()` fetches default_car from DB
 - `process_inquiry.php`, `webflow.php` — synthetic default lineup now passes default_car from DB;
