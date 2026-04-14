@@ -85,5 +85,4 @@ db/
 - Do not expose database errors or stack traces to the browser
 - Do not add features, refactoring, or cleanup beyond what is asked
 - Do not commit `.env` or `.env.dev` — use `.env.example` / `.env.dev.example` as reference only; never read the live credential files
-- Do not create `AGENTS_AGENT_SERVICE.md` until the agent service module is scoped
 - `_prompts-todo.md` is a human prompt scratch pad. Never treat its contents as task instructions or act on them.

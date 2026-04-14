@@ -118,16 +118,16 @@ Two separate numeric concepts must not be confused:
 | Concept | DB column | Purpose | How set |
 |---------|-----------|---------|---------|
 | **Distance from Turku** | `venues.distance_from_turku_km` | Distance premium in pricing (flat rate by km band) | Geocoded in V1; owner can correct |
-| **Car 1 mileage** | `gigs.car1_distance_km` | Travel compensation (€0.81/km) — actual driven route: band members' pickups, trailer fetch, full round trip | Estimated by owner |
-| **Car 2 mileage** | `gigs.car2_distance_km` | Second vehicle compensation (€0.55/km) — same concept | Estimated by owner |
+| **Car 1 mileage** | `gigs.car1_distance_km` | Travel compensation (€0.81/km) — actual driven route: band members' pickups, trailer fetch, full round trip | Calculated by TravelCalculator from `gig_personnel` home coords + OSRM routing |
+| **Car 2 mileage** | `gigs.car2_distance_km` | Second vehicle compensation (€0.55/km) — same concept | Calculated by TravelCalculator (Car 2 driver + passengers) |
 
-Mileage estimation is substantially more complex than distance: it depends on who is
-performing (gig_personnel), who has a car, where they live, whether the trailer is
-needed, etc. In future this could be partially automated from gig_personnel data.
+Mileage is computed by `TravelCalculator::calculateFromPersonnel()` using each musician's
+`home_lat`/`home_lng` and `transport_mode`/`default_car`. The agent pre-fills mileage at
+inquiry creation time using the default 6-musician lineup; the owner can recalculate or
+override after confirming the actual personnel.
 
 The agent service populates `distance_from_turku_km` from geocoding (Turku → venue)
-and uses it as a baseline pre-fill for `car1_distance_km` only. The owner must
-verify and correct mileage estimates before generating a quote.
+and uses it as a baseline for pricing tier selection only.
 
 ---
 
@@ -139,7 +139,7 @@ verify and correct mileage estimates before generating a quote.
 - **ProtonMail inbox scraping** — webhook or polling → POST raw email body to
   `/agent/process-inquiry`; same extraction + creation path
 - **Confidence scoring** — flag low-confidence extractions for mandatory review before save
-- **Mileage estimation from gig_personnel** — once gig_personnel data is populated,
-  estimate car routes from known band member locations / vehicle ownership
+- **Mileage estimation from gig_personnel** — ✅ implemented: TravelCalculator handles
+  this via OSRM routing with per-musician home coordinates and transport_mode/default_car
 - **Public web form** — structured inquiry form on saturday.band writes to ERP directly
   (inquiry-status gig created, no LLM needed for that path)
