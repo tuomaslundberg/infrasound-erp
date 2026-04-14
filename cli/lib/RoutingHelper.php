@@ -61,6 +61,18 @@ class RoutingHelper
      */
     public static function waypointRouteKm(array $waypoints): ?float
     {
+        $detail = self::waypointRouteDetail($waypoints);
+        return $detail !== null ? $detail['total_km'] : null;
+    }
+
+    /**
+     * Compute total and per-leg driving distances for an ordered sequence of waypoints via OSRM.
+     *
+     * @param  array<array{float, float}> $waypoints  Each element: [lat, lng]. Min 2.
+     * @return array{total_km: float, legs_km: float[]}|null  null on failure.
+     */
+    public static function waypointRouteDetail(array $waypoints): ?array
+    {
         if (count($waypoints) < 2) {
             return null;
         }
@@ -88,6 +100,13 @@ class RoutingHelper
         if (($data['code'] ?? '') !== 'Ok' || empty($data['routes'][0]['distance'])) {
             return null;
         }
-        return round($data['routes'][0]['distance'] / 1000, 1);
+
+        $totalKm = round($data['routes'][0]['distance'] / 1000, 1);
+        $legsKm  = array_map(
+            fn($leg) => round(($leg['distance'] ?? 0) / 1000, 1),
+            $data['routes'][0]['legs'] ?? []
+        );
+
+        return ['total_km' => $totalKm, 'legs_km' => $legsKm];
     }
 }

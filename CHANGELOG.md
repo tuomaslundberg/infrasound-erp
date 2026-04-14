@@ -19,6 +19,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   still show the existing warning
 
 ### Added
+- **Route calculation transparency** — TravelCalculator now returns labelled waypoints and
+  per-leg km for each car route; stored as `car1_route_json` / `car2_route_json` (TEXT) on the
+  `gigs` row; gig detail view shows a collapsible "Route detail" table with waypoints and leg
+  distances; "Recalculate travel" also writes route JSON on recalculation
+- `db/migrations/011_route_json.sql` — adds `car1_route_json` and `car2_route_json` columns
 - **Tilauslomake gigs created with `status=confirmed`** — booking confirmation form semantically
   maps to confirmed, not inquiry; `GigCreator::create()` now accepts an optional `$status` param
   (default `'inquiry'`); Tilauslomake handler passes `'confirmed'`
@@ -29,12 +34,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   seeds mortti.markkanen and lauri.lehtinen as Car 2 (default_car=2)
 
 ### Changed
-- `GigCreator::create()` — added optional `$status` parameter (default `'inquiry'`); validates
-  against the full `gigs.status` ENUM; replaces hard-coded `'inquiry'` literal in INSERT
-- `TravelCalculator::calculateFromPersonnel()` — role parameter now ignored for car assignment;
-  uses transport_mode + default_car instead; `calculate()` fetches default_car from DB
-- `process_inquiry.php`, `webflow.php` — synthetic default lineup now passes default_car from DB;
-  `$defaultRoles` map removed as it was only needed for the old role-based logic
+- `RoutingHelper::waypointRouteKm()` — delegates to new `waypointRouteDetail()` (no behaviour change)
+- `RoutingHelper::waypointRouteDetail()` — new method; returns `{total_km, legs_km[]}` from OSRM
+- `TravelCalculator::calculateFromPersonnel()` — now returns `car1_route` and `car2_route` arrays
+  with labelled waypoints; car assignment based on transport_mode + default_car (not role)
+- `GigCreator::create()` — includes `car1_route_json` / `car2_route_json` in INSERT; added
+  optional `$status` parameter (default `'inquiry'`) with ENUM validation
+- `src/modules/gigs/travel_calculate.php` — UPDATE writes route JSON on recalculation
+- `process_inquiry.php`, `webflow.php` — synthetic default lineup passes default_car from DB;
+  `$defaultRoles` map removed
 
 ---
 
