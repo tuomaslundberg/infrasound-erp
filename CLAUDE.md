@@ -76,6 +76,7 @@ db/
 
 - `~/iCloud/context/todos.md` is the canonical task list across all projects — read and update it as work progresses
 - `TODO.md` in the project root is a **read-only legacy reference** — do not edit or treat as current
+- `dev-log.md` in the project root is the session handoff log — read it at session start to see what was last done and what the suggested next steps are; update it at session close
 
 ---
 

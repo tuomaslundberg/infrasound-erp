@@ -246,18 +246,46 @@ Add to `.env.dev` if dev environment should also resolve tracks.
 
 The ETL uses the **Client Credentials** flow (no user login needed for track search/lookup).
 
+### Known public playlists (high-confidence seed source)
+
+Four manually-curated public playlists exist and should be used as the primary `spotify_track_id`
+source before falling back to search. All are accessible via Client Credentials.
+
+| Playlist | Spotify ID | ETL role |
+|---|---|---|
+| Saturday repertoire | `7macuFdR2Oipb4tzfcgb8B` | Seed track IDs for main repertoire songs |
+| Saturday suggestions | `4POTR14VsbrqC85DtAA37M` | Seed track IDs for song wishes / extras |
+| Saturday live karaoke | `3Q3mAtmIcrQjLFVsoAzHER` | Seed track IDs **and** set `karaoke_eligible = 1` |
+| Saturday Jazz | `5aY2nEjdBSf9PVw0QoZEgk` | Seed track IDs for jazz songs |
+
+Fetch each playlist: `GET /v1/playlists/{id}/tracks?fields=items(track(id,name,artists))&limit=100`
+(paginate if `next` is non-null).
+
 ### Resolution strategy
 
-1. For each song in `songs` after ETL seed: query Spotify Search API:
+Two-phase approach in `enrich_spotify.py`:
+
+**Phase 1 — Playlist seeding (high confidence):**
+1. For each playlist above, fetch all tracks.
+2. For each track, fuzzy-match `artist + title` against unresolved `songs` rows
+   (same `difflib.SequenceMatcher` approach, threshold ≥ 0.85).
+3. On match: set `spotify_track_id`. For the karaoke playlist: also emit
+   `UPDATE songs SET karaoke_eligible = 1` for matched rows.
+4. Log playlist tracks that don't match any song row to `db/seeds/spotify_unmatched.txt`
+   (these may be wishes never added to `songs`, or duplicates).
+
+**Phase 2 — Search-based resolution (fallback for remaining unmatched songs):**
+1. For each song still missing `spotify_track_id`: query Spotify Search API:
    `GET /v1/search?q=artist:{artist} track:{title}&type=track&limit=5`
-2. Pick best match using string similarity on artist + title (same difflib approach).
+2. Pick best match using string similarity on artist + title.
 3. Score threshold ≥ 0.85 → auto-assign `spotify_track_id`.
 4. Below threshold → log to `db/seeds/spotify_unmatched.txt` for manual review.
 5. Finnish artists often have lower match rates; fallback: search `{artist} {title}` without
    field qualifiers.
 
 Separate enrichment script: `cli/etl/enrich_spotify.py`
-Output: `db/seeds/legacy_spotify.sql` — UPDATE statements setting `spotify_track_id`.
+Output: `db/seeds/legacy_spotify.sql` — UPDATE statements setting `spotify_track_id`
+and `karaoke_eligible`.
 
 ### Playlist sync (future `cli/spotify_sync.py`)
 

@@ -180,6 +180,7 @@ good `[copilot]` candidates when clearly specified.
       (currently requires manual SQL); low priority but needed for testing
       role-based access without writing SQL  `[copilot]`
 - [ ] **Additional gig filters** — filter gigs by time (both event and first inquiry date) and channel enum  `[copilot]`
+- [ ] **Gig list sort stability** — all sorts need `g.id` as the final tiebreaker so pagination is deterministic; one-line fix in `src/modules/gigs/list.php` ORDER BY clause  `[copilot]`
 - [ ] **Venue edit UI** — form to edit `name`, `address_line`, `postal_code`, `city`,
       `distance_from_turku_km`, `notes` on a venue row; accessible from gig detail and
       a standalone venue list.  Needed for correcting ETL-seeded placeholder rows

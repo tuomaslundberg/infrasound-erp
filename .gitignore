@@ -12,6 +12,13 @@ db/seeds/legacy_gigs*.sql
 db/seeds/legacy_gigs*.txt
 db/seeds/legacy_enrich*.sql
 db/seeds/legacy_enrich*.txt
+db/seeds/legacy_setlists*.sql
+db/seeds/legacy_setlists*.txt
+db/seeds/legacy_spotify*.sql
+db/seeds/spotify_unmatched*.txt
+db/seeds/legacy_invoicing*.sql
+db/seeds/legacy_invoicing*.txt
+.spotify_cache
 *test.yaml
 composer-setup.php
 *.code-workspace
