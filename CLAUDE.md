@@ -77,6 +77,7 @@ db/
 - `todos.md` in the project root is a symlink to `~/iCloud/context/todos.md` (master cross-project TODO) — always read at session start; update when ERP-level items surface
 - `TODO.md` in the project root is the **ERP collaborative task list** — version-controlled, shared with Toni; read and update as work progresses
 - `TODO.md.legacy` in the project root is a read-only snapshot of the old task file — do not edit or treat as current
+- `dev-log.md` in the project root is the session handoff log — read it at session start to see what was last done and what the suggested next steps are; update it at session close
 
 ---
 
