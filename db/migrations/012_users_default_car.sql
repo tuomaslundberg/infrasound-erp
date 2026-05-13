@@ -8,7 +8,7 @@
 
 ALTER TABLE users
   ADD COLUMN default_car TINYINT(1) UNSIGNED NOT NULL DEFAULT 1
-    COMMENT '1=Car 1 (Caddy), 2=Car 2. Used by TravelCalculator; independent of gig role.';
+    COMMENT '1=Car 1 (Caddy), 2=Car 2. Used by TravelCalculator';
 
 -- Seed correct values for known musicians.
 -- Car 2: Mortti (driver) and Lauri (Helsinki pickup, rides with Car 2 driver).

@@ -10,7 +10,7 @@ require_once __DIR__ . '/RoutingHelper.php';
  * NOT by the gig role. The role describes what instrument someone plays; it has
  * no bearing on which car they travel in.
  *
- * Canonical flows (see AGENTS.md §travel-flows):
+ * Canonical flows:
  *
  * Car 1 (Caddy + trailer):
  *   transport_mode='car_owner', default_car=1 → driver (Tuomas)
@@ -82,7 +82,7 @@ class TravelCalculator
      * @param  float  $venueLat
      * @param  float  $venueLng
      * @param  array{requires_ferry: bool, cost_eur: float}  $ferry
-     * @return array{car1_km: float|null, car2_km: float|null, ferry_costs_eur: float, warnings: string[]}
+     * @return array{car1_km: float|null, car2_km: float|null, ferry_costs_eur: float, warnings: string[], car1_route: array|null, car2_route: array|null}
      */
     public static function calculateFromPersonnel(
         array $personnel,
@@ -91,15 +91,26 @@ class TravelCalculator
         array $ferry = ['requires_ferry' => false, 'cost_eur' => 0.0]
     ): array {
         $warnings   = [];
-        $car1Driver = null;   // [lat, lng]
-        $car1Stops  = [];     // ordered pickup waypoints for Car 1
-        $car2Driver = null;   // [lat, lng]
-        $car2Stops  = [];     // ordered pickup waypoints for Car 2
+        // Each entry: ['lat' => float, 'lng' => float, 'label' => string]
+        $car1Driver = null;
+        $car1Stops  = [];
+        $car2Driver = null;
+        $car2Stops  = [];
 
         foreach ($personnel as $p) {
             // transport_override on the gig row overrides the user-level transport_mode.
             // default_car always comes from the user, never from the gig.
-            $effectiveMode = $p['transport_override'] ?? $p['transport_mode'];
+            $overrideMode  = $p['transport_override'];
+            $baseMode      = $p['transport_mode'];
+            $effectiveMode = $overrideMode ?? $baseMode;
+
+            // transport_override='car_owner' means "drives own non-band car this gig, not billed"
+            // (distinct from transport_mode='car_owner' = designated band car driver).
+            // Normalise to 'local' so the exclusion logic below handles both identically.
+            if ($overrideMode === 'car_owner') {
+                $effectiveMode = 'local';
+            }
+
             $defaultCar    = (int)($p['default_car'] ?? 1);
 
             $lat       = isset($p['home_lat']) ? (float)$p['home_lat'] : null;
@@ -112,21 +123,30 @@ class TravelCalculator
                 continue;
             }
 
+            if ($effectiveMode === 'public_transport') {
+                // Travels independently by train/bus; no band car pickup needed or billed.
+                continue;
+            }
+
             if ($effectiveMode === 'car_owner') {
                 // This person drives a band car.
                 if ($defaultCar === 2) {
                     // Car 2 driver (Mortti, Maxwell).
-                    if (!$hasCoords) {
+                    if ($car2Driver !== null) {
+                        $warnings[] = "Duplicate Car 2 driver: {$p['username']} ignored — {$car2Driver['label']} already assigned. Check users.default_car and transport_mode.";
+                    } elseif (!$hasCoords) {
                         $warnings[] = "Car 2 driver ({$p['username']}) has no home coordinates — Car 2 route unavailable.";
                     } else {
-                        $car2Driver = [$lat, $lng];
+                        $car2Driver = ['lat' => $lat, 'lng' => $lng, 'label' => "{$p['username']} (Car 2 driver)"];
                     }
                 } else {
                     // Car 1 driver (Tuomas).
-                    if (!$hasCoords) {
+                    if ($car1Driver !== null) {
+                        $warnings[] = "Duplicate Car 1 driver: {$p['username']} ignored — {$car1Driver['label']} already assigned. Check users.default_car and transport_mode.";
+                    } elseif (!$hasCoords) {
                         $warnings[] = "Car 1 driver ({$p['username']}) has no home coordinates — Car 1 route unavailable.";
                     } else {
-                        $car1Driver = [$lat, $lng];
+                        $car1Driver = ['lat' => $lat, 'lng' => $lng, 'label' => "{$p['username']} (Car 1 driver)"];
                     }
                 }
             } else {
@@ -134,14 +154,14 @@ class TravelCalculator
                 if ($defaultCar === 2) {
                     // Travels with Car 2; picked up en route (e.g. Lauri from Helsinki).
                     if ($hasCoords) {
-                        $car2Stops[] = [$lat, $lng];
+                        $car2Stops[] = ['lat' => $lat, 'lng' => $lng, 'label' => "{$p['username']} (Car 2 passenger)"];
                     } else {
                         $warnings[] = "{$p['username']} (Car 2 passenger) has no home coordinates — pickup waypoint skipped.";
                     }
                 } else {
                     // Travels with Car 1 (default).
                     if ($hasCoords) {
-                        $car1Stops[] = [$lat, $lng];
+                        $car1Stops[] = ['lat' => $lat, 'lng' => $lng, 'label' => "{$p['username']} (Car 1 passenger)"];
                     } else {
                         $warnings[] = "{$p['username']} (Car 1 passenger) has no home coordinates — pickup waypoint skipped.";
                     }
@@ -149,8 +169,19 @@ class TravelCalculator
             }
         }
 
-        $car1Km = self::computeCarRoute($car1Driver, $car1Stops, $venueLat, $venueLng, true);
-        $car2Km = self::computeCarRoute($car2Driver, $car2Stops, $venueLat, $venueLng, false);
+        // Car 2 fallback: if no Car 2 driver, roll Car 2 passengers into Car 1.
+        // Must happen before computeCarRouteDetail so they appear in the route.
+        if ($car2Driver === null && !empty($car2Stops)) {
+            $stopNames = implode(', ', array_column($car2Stops, 'label'));
+            $warnings[] = "No Car 2 driver in lineup — Car 2 passenger(s) added to Car 1 route: $stopNames.";
+            $car1Stops = array_merge($car1Stops, $car2Stops);
+            $car2Stops = [];
+        }
+
+        $car1Result = self::computeCarRouteDetail($car1Driver, $car1Stops, $venueLat, $venueLng, true);
+        $car2Result = self::computeCarRouteDetail($car2Driver, $car2Stops, $venueLat, $venueLng, false);
+        $car1Km = $car1Result['km'];
+        $car2Km = $car2Result['km'];
 
         if ($car1Driver !== null && $car1Km === null) {
             $warnings[] = 'Car 1 OSRM routing failed — check network and waypoint coordinates.';
@@ -169,48 +200,67 @@ class TravelCalculator
             'car2_km'         => $car2Km,
             'ferry_costs_eur' => $ferryCosts,
             'warnings'        => $warnings,
+            'car1_route'      => $car1Result['route'],
+            'car2_route'      => $car2Result['route'],
         ];
     }
 
     /**
-     * Build and query one car's route.
+     * Build and query one car's route, returning km and labelled route detail.
      * Route: driver home → [trailer if Car 1] → stops[] → venue → back to driver home (× 2 approx).
      *
-     * @param array|null $driver  [lat, lng] or null
-     * @param array      $stops   additional pickup waypoints [[lat,lng], ...]
+     * @param array|null $driver  ['lat', 'lng', 'label'] or null
+     * @param array      $stops   additional pickup waypoints [['lat','lng','label'], ...]
      * @param float      $venueLat
      * @param float      $venueLng
      * @param bool       $isCar1  if true, inserts trailer waypoint after driver home
-     * @return float|null  round-trip km or null if no driver / OSRM failure
+     * @return array{km: float|null, route: array|null}
      */
-    private static function computeCarRoute(
+    private static function computeCarRouteDetail(
         ?array $driver,
         array  $stops,
         float  $venueLat,
         float  $venueLng,
         bool   $isCar1
-    ): ?float {
+    ): array {
         if ($driver === null) {
-            return null;
+            return ['km' => null, 'route' => null];
         }
 
-        $waypoints = [$driver];
+        // Labelled waypoints for display
+        $labelledWaypoints = [
+            ['label' => $driver['label'], 'lat' => $driver['lat'], 'lng' => $driver['lng']],
+        ];
 
         if ($isCar1) {
-            $waypoints[] = [self::TRAILER_LAT, self::TRAILER_LNG];
+            $labelledWaypoints[] = ['label' => 'Trailer (Opettajankatu 9)', 'lat' => self::TRAILER_LAT, 'lng' => self::TRAILER_LNG];
         }
 
         foreach ($stops as $stop) {
-            $waypoints[] = $stop;
+            $labelledWaypoints[] = ['label' => $stop['label'], 'lat' => $stop['lat'], 'lng' => $stop['lng']];
         }
 
-        $waypoints[] = [$venueLat, $venueLng];
+        $labelledWaypoints[] = ['label' => 'Venue', 'lat' => $venueLat, 'lng' => $venueLng];
 
-        $oneWayKm = RoutingHelper::waypointRouteKm($waypoints);
-        if ($oneWayKm === null) {
-            return null;
+        // Flat [lat, lng] pairs for OSRM
+        $coords = array_map(fn($w) => [$w['lat'], $w['lng']], $labelledWaypoints);
+
+        $detail = RoutingHelper::waypointRouteDetail($coords);
+        if ($detail === null) {
+            return ['km' => null, 'route' => null];
         }
-        return round($oneWayKm * 2, 1); // round trip
+
+        $oneWayKm    = $detail['total_km'];
+        $roundTripKm = round($oneWayKm * 2, 1);
+
+        return [
+            'km'    => $roundTripKm,
+            'route' => [
+                'waypoints'   => $labelledWaypoints,
+                'one_way_km'  => $oneWayKm,
+                'legs_km'     => $detail['legs_km'],
+            ],
+        ];
     }
 
     /**

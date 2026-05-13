@@ -71,12 +71,16 @@ $pdo->prepare(
     "UPDATE gigs SET
         car1_distance_km          = ?,
         car2_distance_km          = ?,
-        other_travel_costs_cents  = ?
+        other_travel_costs_cents  = ?,
+        car1_route_json           = ?,
+        car2_route_json           = ?
      WHERE id = ?"
 )->execute([
     $result['car1_km'],
     $result['car2_km'] ?? 0,
     (int)round($result['ferry_costs_eur'] * 100),
+    isset($result['car1_route']) ? json_encode($result['car1_route']) : null,
+    isset($result['car2_route']) ? json_encode($result['car2_route']) : null,
     $gigId,
 ]);
 

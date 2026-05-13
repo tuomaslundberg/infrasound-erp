@@ -231,6 +231,37 @@ render_layout($gig['customer_name'], function () use ($gig, $transitions, $perso
             </dd>
           </dl>
 
+          <?php
+          $car1Route = isset($gig['car1_route_json']) ? json_decode($gig['car1_route_json'], true) : null;
+          $car2Route = isset($gig['car2_route_json']) ? json_decode($gig['car2_route_json'], true) : null;
+          if ($car1Route || $car2Route):
+          ?>
+          <div class="mt-2">
+            <a class="small text-muted" data-bs-toggle="collapse" href="#routeDetail" role="button">
+              Route detail ▾
+            </a>
+            <div class="collapse mt-2" id="routeDetail">
+              <?php foreach ([['Car 1', $car1Route], ['Car 2', $car2Route]] as [$label, $route]): ?>
+              <?php if ($route): ?>
+              <p class="small fw-semibold mb-1"><?= $label ?> — one-way <?= $route['one_way_km'] ?> km (round trip <?= round($route['one_way_km'] * 2, 1) ?> km)</p>
+              <table class="table table-sm table-bordered small mb-3">
+                <thead class="table-light"><tr><th>#</th><th>Waypoint</th><th class="text-end">Leg km</th></tr></thead>
+                <tbody>
+                <?php foreach ($route['waypoints'] as $i => $wp): ?>
+                <tr>
+                  <td><?= $i + 1 ?></td>
+                  <td><?= htmlspecialchars($wp['label']) ?></td>
+                  <td class="text-end"><?= isset($route['legs_km'][$i]) ? $route['legs_km'][$i] . ' km' : '—' ?></td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+              </table>
+              <?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <?php endif; ?>
+
           <hr class="my-2">
 
           <dl class="row mb-0">
