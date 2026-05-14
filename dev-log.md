@@ -5,6 +5,40 @@ Format: date · who · what was done · suggested next steps.
 
 ---
 
+## 2026-05-14 — Phase 4 + venue ETL specs; Spotify coverage completed
+
+**Branch:** `main` / `dev` (in sync)
+
+### Done
+- Filled all 15 remaining Spotify track IDs (manual lookup by Tuomas); soft-deleted
+  the 15 featured-artist duplicate rows inserted by `import_spotify_playlist.py`
+  (unique constraint required nulling IDs before soft-delete); dev DB now 542/542 = 100%
+- Updated `spotify_manual.sql` to serve as prod replay: nulls IDs on duplicates first,
+  then assigns to original repertoire rows
+- Merged `feat/spotify-playlist-import` → `main` (went to main directly; dev synced
+  by fast-forward push)
+- Corrected default lineup spec: Alina Kangas (vocals), not Mikael Lehto (quit 2023);
+  annotated `INVOICING_ETL_SPEC.md` with explicit note
+- Wrote `PHASE4_SPEC.md` — full implementation spec for Phase 4 sprint (6 features):
+  geocoding map, entity normalisation in InquiryExtractor, venue schema + edit UI,
+  venue fuzzy lookup, default lineup auto-fill, gig list filters
+- Wrote `cli/etl/VENUES_ETL_SPEC.md` — venuu.fi crawl spec for Finnish venue corpus
+  (Varsinais-Suomi / Pirkanmaa / Uusimaa); includes pre-crawl checklist, type filtering
+  guidance, geocoding approach, SQL output format, Makefile targets
+- Updated `CONTEXT_PROMPT.md`, `TODO.md` to reference new specs
+
+### Next steps
+1. **Test on dev** — Tuomas to verify dev environment after merge
+2. **Phase 4 sprint** — `feat/phase4-polish` branched from `dev`; feed `PHASE4_SPEC.md`
+   to Claude Code; do features A → F in order (B before C; rest independent)
+3. **Venue corpus** — check venuu.fi robots.txt + URL structure first; then
+   `cli/etl/extract_venues.py` per `VENUES_ETL_SPEC.md`
+4. **Prod ETL deploy** — once dev is verified: apply migrations 013/014 to prod,
+   load all legacy seeds + `spotify_manual.sql`
+5. **Joni geocoding** — verify via geocoding map (Feature A); fix address if wrong
+
+---
+
 ## 2026-05-14 — Bookkeeping schema + context documentation
 
 **Branch:** `feat/setlist-etl` (documentation/schema only — no migrations applied yet)

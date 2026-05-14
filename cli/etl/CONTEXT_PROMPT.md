@@ -72,8 +72,8 @@ Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 1. **Merge feat/setlist-etl → dev** — open PR; ensure migration 014 rename is correct
 2. **Prod deployment** — sequence above
 3. **Fill spotify_manual.sql** — 33 songs need manual Spotify track ID lookup
-4. **Phase 4 feature work** — see TODO.md for scoped items (venue edit UI, lineup auto-fill,
-   inquiry extractor polish); all marked `[copilot]`
+4. **Phase 4 feature work** — fully specced in `PHASE4_SPEC.md`; branch `feat/phase4-polish` from dev
+5. **Venue corpus ETL** — specced in `cli/etl/VENUES_ETL_SPEC.md`; do pre-crawl checklist first
 
 ---
 
@@ -83,8 +83,8 @@ Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 2. `AGENTS.md` — architecture reference
 3. `TODO.md` — current task list
 4. `dev-log.md` — session-by-session history + last suggested next steps
-5. `cli/etl/INVOICING_ETL_SPEC.md` — invoicing ETL spec (for reference; script is done)
-6. `cli/etl/SETLIST_ETL_SPEC.md` — setlist ETL spec (for reference; scripts are done)
+5. `PHASE4_SPEC.md` — Phase 4 sprint spec (venue UI, entity extraction, lineup auto-fill, gig filters)
+6. `cli/etl/VENUES_ETL_SPEC.md` — venuu.fi venue corpus crawl spec
 7. `cli/etl/BOOKKEEPING_CONTEXT.md` — bookkeeping/invoicing filesystem map, data formats,
    VAT flow, partner credit mechanics, document storage design (Phase 6–7 reference)
 8. `cli/etl/tappio_format_notes.md` — Tappio `.tlk` format spec

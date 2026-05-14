@@ -34,25 +34,25 @@
 
 ## Phase 4 — Venue + inquiry polish
 
-- [ ] **Venue fuzzy lookup in `process_inquiry.php`** — before INSERT, fuzzy-match incoming
-      venue name+city against existing rows; only create a new row if no match above
-      threshold; prevents duplicate venues and broken "has band played here before"
-      template-selection  `[copilot]`
-- [ ] **Venue edit UI** — CRUD form for `name`, `address_line`, `city`,
-      `distance_from_turku_km`, `notes`; accessible from gig detail and `/admin/venues`
-      list; needed to correct ETL-seeded placeholder rows without SQL  `[copilot]`
-- [ ] **Venue practical fields** — add `has_stage`, `haze_allowed`, `outside_gig`,
-      `use_house_PA` to venues schema + edit form; surface on gig detail  `[copilot]`
-- [ ] **Default lineup auto-fill** — "Fill default lineup" button on gig detail when
-      `status=confirmed` and no personnel assigned; inserts the 6 default musicians with
-      null fees; owner adjusts  `[copilot]`
-- [ ] **Inquiry extractor polish** — (a) default `customer_name` to contact name when AI
-      leaves it empty; (b) strip Finnish case suffixes from venue name before geocoding
-      (e.g. "Hintsan Vintille" → "Hintsan Vinti" caused geocoding failure)  `[copilot]`
-- [ ] **Additional gig filters** — filter by time range (event date + inquiry date) and
-      channel enum  `[copilot]`
-- [ ] **`customer_type` correction pass** — imported gigs default to `wedding`; manual pass
-      after prod rebuild; full list of known non-wedding gigs in `TODO.md.legacy` §Easy issues
+*Fully specced in `PHASE4_SPEC.md`. Branch `feat/phase4-polish` from `dev`.*
+
+- [ ] **Feature A: Geocoding verification map** — Leaflet map at `/admin/geocode-musicians`
+      showing all musician home pins; required to verify + fix Joni's coordinates
+- [ ] **Feature B: Entity extraction normalisation** — update `InquiryExtractor` system prompt
+      to return all Finnish text fields in nominative (perusmuoto); handles venue names,
+      customer names, city names; replaces the broken suffix-stripping approach
+- [ ] **Feature C: Venue schema + edit UI** — migration 017 (4 boolean fields), `/admin/venues`
+      list, venue edit form, link from gig detail
+- [ ] **Feature D: Venue fuzzy lookup** — `similar_text()` ≥ 80% match in `GigCreator`
+      before INSERT; prevents duplicate venues
+- [ ] **Feature E: Default lineup auto-fill** — "Fill default lineup" button on confirmed
+      gigs with no personnel; inserts 6 standard musicians with null fees
+- [ ] **Feature F: Gig list filters** — date range (event date from/to) + channel dropdown
+- [ ] **Venue corpus ETL** — `cli/etl/extract_venues.py` crawl of venuu.fi for
+      Varsinais-Suomi / Pirkanmaa / Uusimaa; specced in `cli/etl/VENUES_ETL_SPEC.md`;
+      do pre-crawl checklist first (robots.txt + URL structure)
+- [ ] **`customer_type` correction pass** — manual data pass on prod after ETL deploy;
+      full list of known non-wedding gigs in `TODO.md.legacy` §Easy issues
 
 ---
 
