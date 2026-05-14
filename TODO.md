@@ -12,8 +12,7 @@
       full prod ETL transition from fresh Dropbox snapshot (see dev-log.md)
 - [ ] **Joni's home coordinates** — verify correct address via geocoding map (Phase 4
       Feature A); `Kirkkotie 2, 20540 Turku` may geocode ~3.8 km off
-- [ ] **Remove webhook debug logging** — `error_log('Webflow webhook payload: ...')` in
-      `src/modules/webhook/webflow.php`; prod Tilauslomake confirmed working ✓ — safe to remove
+- [x] **Remove webhook debug logging** ✓
 - [x] **Disable Webflow email notifications** ✓
 
 ---
