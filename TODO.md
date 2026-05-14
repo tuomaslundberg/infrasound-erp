@@ -16,16 +16,19 @@
 - [ ] **Remove webhook debug logging** — `error_log('Webflow webhook payload: ...')` in
       `src/modules/webhook/webflow.php`; keep until one prod Tilauslomake submission confirms
       `order_description` is populated, then remove
-- [ ] **Disable Webflow email notifications** — in Webflow Designer for both Email Form and
-      Tilauslomake; prevents duplicate notifications once the ERP webhook is the primary path
+- [x] **Disable Webflow email notifications** ✓
 
 ---
 
-## feat/setlist-etl — pending merge
+## feat/spotify-playlist-import — pending push + merge
 
 - [x] **Rename migration** — renamed to `014_songs_extension.sql` ✓
-- [ ] **Merge feat/setlist-etl → dev** — standard PR; apply migration 014 to dev + prod;
-      then run prod deployment sequence (see `cli/etl/CONTEXT_PROMPT.md`)
+- [x] **Merge feat/setlist-etl → dev** ✓
+- [x] **ETL scripts** — songs, setlists, Spotify enrichment, invoicing all done + loaded in dev ✓
+- [x] **Spotify coverage** — 542/542 songs (100%) via playlists + manual IDs ✓
+- [ ] **Push + PR feat/spotify-playlist-import → dev** — 2 commits local only (SSH key needed)
+- [ ] **Prod ETL deployment** — after dev→main: apply migrations 013/014, load all seeds;
+      sequence in `cli/etl/CONTEXT_PROMPT.md`
 
 ---
 

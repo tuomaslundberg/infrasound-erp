@@ -105,6 +105,12 @@ Toni, Tuomas, Joni, and Lauri are partners; create them with appropriate roles i
 The "default" external slot has rotated over time. Use the fee columns as the authoritative
 presence signal (fee > 0 = present), not a hardcoded default list.
 
+**Current default 6 (post-2023, used by webflow.php and the auto-fill feature):**
+Tuomas (keyboards), Toni (sound_engineering), Joni (drums), Lauri (guitar),
+Alina Kangas (vocals), Mortti Markkanen (bass).
+Mikael Lehto was the regular vocalist until mid-2023 when he quit Saturday Band;
+he appears heavily in historical data but is NOT in the current default lineup.
+
 Partner defaults (Tuomas, Toni, Joni, Lauri) are assumed present on every gig UNLESS
 explicitly listed as an exception below.
 
