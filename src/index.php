@@ -46,6 +46,7 @@ $routes = [
     // Admin — schema + ops
     ['#^/admin/migrations$#',               'modules/admin/migrations.php',         'owner'],
     ['#^/admin/geocode-musicians$#',        'modules/admin/geocode_musicians.php',   'owner'],
+    ['#^/admin/setlist-analytics$#',        'modules/admin/setlist_analytics.php',  'owner'],
 
     // Account
     ['#^/account/password$#',               'modules/auth/change_password.php', 'musician'],

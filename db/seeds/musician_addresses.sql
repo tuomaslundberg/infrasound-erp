@@ -40,15 +40,17 @@ UPDATE users SET
     transport_mode = 'passenger'
 WHERE username = 'lauri.lehtinen';
 
--- Car 2 drivers (bass — Mortti or Maxwell; always own car)
+-- Car 2 drivers (bass — Mortti or Maxwell; always own car, always Car 2)
 UPDATE users SET
     home_address   = 'Tilkankatu 6, 00300 Helsinki',
-    transport_mode = 'car_owner'
+    transport_mode = 'car_owner',
+    default_car    = 2
 WHERE username = 'mortti.markkanen';
 
 UPDATE users SET
     home_address   = 'Arabianranta, 00550 Helsinki',
-    transport_mode = 'car_owner'
+    transport_mode = 'car_owner',
+    default_car    = 2
 WHERE username = 'maxwell.mbare';
 
 -- Car 2 passenger (sound engineering — Valtteri; rides Car 2 by default)

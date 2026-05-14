@@ -7,28 +7,21 @@
 
 ## Immediate / operational
 
-- [ ] **Prod: seed + geocode musicians** — apply `db/seeds/musician_addresses.sql` via
-      phpMyAdmin, then run `/admin/geocode-musicians`; required before travel calculation
-      is accurate on prod
-- [ ] **Joni's home coordinates** — `Kirkkotie 2, 20540 Turku` geocodes to wrong location
-      (~3.8 km from trailer but actual route is longer); verify correct street + municipality,
-      update `home_address` in users and re-geocode via `/admin/geocode-musicians`
-- [ ] **Remove webhook debug logging** — `error_log('Webflow webhook payload: ...')` in
-      `src/modules/webhook/webflow.php`; keep until one prod Tilauslomake submission confirms
-      `order_description` is populated, then remove
+- [ ] **Prod: seed + geocode musicians** — apply `db/seeds/musician_addresses.sql` (includes
+      Maxwell Car 2 fix), then run `/admin/geocode-musicians`; do this as part of the
+      full prod ETL transition from fresh Dropbox snapshot (see dev-log.md)
+- [ ] **Joni's home coordinates** — verify correct address via geocoding map (Phase 4
+      Feature A); `Kirkkotie 2, 20540 Turku` may geocode ~3.8 km off
+- [x] **Remove webhook debug logging** ✓
 - [x] **Disable Webflow email notifications** ✓
 
 ---
 
-## feat/spotify-playlist-import — pending push + merge
+## In progress / pending merge
 
-- [x] **Rename migration** — renamed to `014_songs_extension.sql` ✓
-- [x] **Merge feat/setlist-etl → dev** ✓
-- [x] **ETL scripts** — songs, setlists, Spotify enrichment, invoicing all done + loaded in dev ✓
-- [x] **Spotify coverage** — 542/542 songs (100%) via playlists + manual IDs ✓
-- [ ] **Push + PR feat/spotify-playlist-import → dev** — 2 commits local only (SSH key needed)
-- [ ] **Prod ETL deployment** — after dev→main: apply migrations 013/014, load all seeds;
-      sequence in `cli/etl/CONTEXT_PROMPT.md`
+- [ ] **PR feat/setlist-analytics → dev** — setlist analytics CLI + admin page + Maxwell
+      Car 2 fix (`default_car=2` was missing for maxwell.mbare, caused route calculation
+      to dump Helsinki passengers into Car 1)
 
 ---
 
@@ -40,14 +33,17 @@
       showing all musician home pins; required to verify + fix Joni's coordinates
 - [ ] **Feature B: Entity extraction normalisation** — update `InquiryExtractor` system prompt
       to return all Finnish text fields in nominative (perusmuoto); handles venue names,
-      customer names, city names; replaces the broken suffix-stripping approach
-- [ ] **Feature C: Venue schema + edit UI** — migration 017 (4 boolean fields), `/admin/venues`
-      list, venue edit form, link from gig detail
+      customer names, city names
+- [ ] **Feature C: Venue schema + edit UI** — migration 017 (4 boolean fields + source column),
+      `/admin/venues` list, venue edit form, link from gig detail
 - [ ] **Feature D: Venue fuzzy lookup** — `similar_text()` ≥ 80% match in `GigCreator`
       before INSERT; prevents duplicate venues
 - [ ] **Feature E: Default lineup auto-fill** — "Fill default lineup" button on confirmed
-      gigs with no personnel; inserts 6 standard musicians with null fees
+      gigs with no personnel; inserts 6 standard musicians (Tuomas/Toni/Joni/Lauri/Alina/Mortti)
+      with null fees
 - [ ] **Feature F: Gig list filters** — date range (event date from/to) + channel dropdown
+- [ ] **Feature G: Gig conversation context** — migration 018 (`gig_messages` table);
+      save raw inquiry text and Webflow payload; display collapsible on gig detail
 - [ ] **Venue corpus ETL** — `cli/etl/extract_venues.py` crawl of venuu.fi for
       Varsinais-Suomi / Pirkanmaa / Uusimaa; specced in `cli/etl/VENUES_ETL_SPEC.md`;
       do pre-crawl checklist first (robots.txt + URL structure)
@@ -58,6 +54,9 @@
 
 ## Phase 5 — Setlists
 
+- [x] **Setlist analytics** — `cli/etl/analyze_setlists.py` (play frequency, recency,
+      co-occurrence, SetlistBuilder) + `/admin/setlist-analytics` page ✓ (needs further
+      polish and verification against dev DB)
 - [ ] **Setlist builder polish** — reactive edit view (no full-page reload on reorder);
       song search from global repertoire + suggestions in add-song flow  `[copilot]`
 

@@ -7,7 +7,7 @@
 
 ## Overview
 
-Six features, roughly in dependency order:
+Seven features, roughly in dependency order:
 
 | # | Feature | Files touched | Effort |
 |---|---------|--------------|--------|
@@ -17,8 +17,9 @@ Six features, roughly in dependency order:
 | D | Venue fuzzy lookup in GigCreator | `GigCreator.php` | Small |
 | E | Default lineup auto-fill | `gigs/detail.php`, new endpoint | Small |
 | F | Gig list filters | `gigs/list.php` | Small |
+| G | Gig conversation context — raw inquiry storage | new migration, `GigCreator.php`, `process_inquiry.php`, `webflow.php`, `gigs/detail.php` | Small |
 
-Do B before C (normalised venue names feed into fuzzy lookup). Otherwise features are independent.
+Do B before C (normalised venue names feed into fuzzy lookup). G is independent of all others.
 
 ---
 
@@ -269,6 +270,85 @@ Validation: `date_from` / `date_to` must match `YYYY-MM-DD` format or be ignored
 
 ---
 
+---
+
+## Feature G — Gig conversation context
+
+**Goal:** preserve the full raw text of every inquiry so the original conversation is
+accessible in the ERP, not just the AI's extraction summary.
+
+**Background:** currently the raw inquiry text (email paste in `process_inquiry.php`,
+Webflow form payload in `webflow.php`) is discarded after extraction. Only
+`order_description` (VARCHAR 255) and `notes` (TEXT, AI-extracted) survive. Old email
+threads have no storage path at all.
+
+### G1 — Migration
+
+**File:** `db/migrations/018_gig_messages.sql`
+
+```sql
+CREATE TABLE gig_messages (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    gig_id      INT UNSIGNED NOT NULL,
+    source      ENUM('inquiry', 'webflow', 'email', 'manual') NOT NULL,
+    body        TEXT NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT UTC_TIMESTAMP(),
+    deleted_at  DATETIME DEFAULT NULL,
+    CONSTRAINT fk_gm_gig FOREIGN KEY (gig_id) REFERENCES gigs(id),
+    INDEX idx_gm_gig (gig_id)
+);
+```
+
+Also add to `db/schema/core.sql`.
+
+Apply: `make migrate-dev FILE=db/migrations/018_gig_messages.sql`
+
+### G2 — Save raw text in process_inquiry.php
+
+`src/modules/agent/process_inquiry.php`: after `GigCreator::create()` returns `$gigId`,
+INSERT the raw text:
+
+```php
+if ($gigId && $rawText !== '') {
+    $pdo->prepare(
+        'INSERT INTO gig_messages (gig_id, source, body) VALUES (?, ?, ?)'
+    )->execute([$gigId, 'inquiry', $rawText]);
+}
+```
+
+### G3 — Save raw payload in webflow.php
+
+`src/modules/webhook/webflow.php`: after `runPipelineAndCreate()` returns `$gigId`,
+INSERT the raw message. For Email Form use `source='email'`; for Tilauslomake use
+`source='webflow'`. The raw text to store is the `$message` variable (Email Form) or a
+JSON-encoded summary of the structured Tilauslomake fields (Webflow):
+
+```php
+if ($gigId && $rawBody !== '') {
+    $pdo->prepare(
+        'INSERT INTO gig_messages (gig_id, source, body) VALUES (?, ?, ?)'
+    )->execute([$gigId, $source, $rawBody]);
+}
+```
+
+For Tilauslomake, `$rawBody = json_encode($payload, JSON_UNESCAPED_UNICODE)` where
+`$payload` is the decoded webhook body — this preserves all submitted fields verbatim.
+
+### G4 — Display on gig detail
+
+`src/modules/gigs/detail.php`: add a collapsible "Inquiry / messages" section below
+the gig notes. Query:
+
+```sql
+SELECT source, body, created_at FROM gig_messages
+WHERE gig_id = ? AND deleted_at IS NULL ORDER BY created_at ASC
+```
+
+Render each message as a `<pre>` block inside a Bootstrap card, labelled with source
+and timestamp. If no messages exist, show nothing (no empty section).
+
+---
+
 ## Verification checklist
 
 - [ ] Map at `/admin/geocode-musicians` shows all geocoded musicians as labelled pins
@@ -281,3 +361,7 @@ Validation: `date_from` / `date_to` must match `YYYY-MM-DD` format or be ignored
 - [ ] "Fill default lineup" button visible on a confirmed gig with no personnel; inserts 6 rows
 - [ ] Button absent on inquiry-status gigs and on gigs that already have personnel
 - [ ] Gig list date-range and channel filters narrow results correctly; filter state survives pagination
+- [ ] Submitting an inquiry via process_inquiry.php → gig_messages row created with source='inquiry'
+- [ ] Webflow Email Form submission → gig_messages row with source='email', body = raw message
+- [ ] Webflow Tilauslomake submission → gig_messages row with source='webflow', body = JSON payload
+- [ ] Gig detail shows the message body in a collapsible section; absent when no messages
