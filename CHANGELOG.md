@@ -8,6 +8,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `db/migrations/016_documents_schema.sql` — document storage system: `documents` table
+  (indexes all stored files by type/date/counterparty/storage_path; supports purchase
+  invoices, sales invoices, travel invoices, bank statements, VAT returns, year-end docs);
+  `km_rates` config table (per-year mileage reimbursement rates seeded from Verohallinto
+  decisions 2022–2026, three categories: base/trailer/passenger); ALTER `journal_events`
+  to add nullable `document_id` FK. Establishes storage/ bind-mount convention (files
+  served only via PHP auth gate, never directly by Apache). ETL note in file for
+  `extract_documents.py` (Phase 6-7).
+- `storage/documents/` directory structure (gitignored; host bind-mount added to
+  docker-compose.yml); storage access rule added to AGENTS.md §5.
+- `db/migrations/015_bookkeeping_schema.sql` — Phase 6-7 foundation schema: `accounts`
+  (chart of accounts seeded with Tappio codes), `vat_rate_schedule` (rate changes by
+  fiscal year, e.g. 14%→13.5% from 2026), `journal_events` + `journal_lines`
+  (double-entry ledger matching Tappio's payment-based approach; amounts as signed
+  eurocents; debit=positive convention), `partner_credit_events` + `partner_credit_balances`
+  VIEW (per-partner earnings/payments tracker separate from statutory ledger), and
+  `journal_balance_check` VIEW for integrity verification.
+- `cli/etl/BOOKKEEPING_CONTEXT.md` — expanded with: §3 partner credit balance mechanics
+  (varjokirjanpito sheets, tilit structure, keikkapalkat fee split formula, current
+  balances); §4 travel invoicing flows (VSYP Matkalasku format, three template types,
+  mileage rates 0.55€/km 2026 / 0.59€/km 2025, daily allowance schedule, Tappio
+  account treatment, ostolaskut/matkalaskut/ filing structure); resolved §8 open
+  questions 1 and 2; updated ETL sequencing table.
 - `cli/etl/extract_songs.py` — parses `old-files/repertoire/playlist-gig.txt` and
   `playlist-gig-jazz.txt` into `db/seeds/legacy_songs.sql` (432 songs: 390 gig-band
   repertoire + 42 jazz). Handles three column layouts per genre section

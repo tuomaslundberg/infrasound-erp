@@ -9,6 +9,7 @@ services:
       - ./config:/var/www/config
       - ./cli:/var/www/cli
       - ./old-files:/var/www/old-files
+      - ./storage:/var/www/storage   # document store — NOT under web root; served via PHP auth gate
     env_file:
       - .env
     depends_on:

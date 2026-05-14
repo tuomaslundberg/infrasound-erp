@@ -1,7 +1,7 @@
-# Claude Code context prompt — Invoicing ETL next session
+# Claude Code context prompt — Infrasound ERP
 
-Use this to bring a fresh Claude Code session up to speed on where the invoicing ETL work
-stands. Feed this file verbatim, then continue from the "Next task" section.
+Use this to bring a fresh Claude Code session up to speed on current project state.
+Feed verbatim, then continue from the "Next steps" section.
 
 ---
 
@@ -14,136 +14,66 @@ soft deletes, no hardcoded secrets.
 
 ---
 
-## ETL pipeline — current state
+## ETL pipeline — current state (as of 2026-05-14)
 
-Three-stage legacy data import pipeline:
+All legacy ETL scripts are written and loaded into dev DB. See `dev-log.md` for detail.
 
-| Stage | Script / file | Makefile target | Status |
-|-------|---------------|-----------------|--------|
-| 1. Extraction | `cli/etl/extract_gigs.py` | `make etl-gigs` | ✅ done |
-| 2. Seed import | `db/seeds/legacy_gigs.sql` (generated) | `make import-legacy-gigs` | ✅ done |
-| 3. Enrichment | `cli/etl/enrich_gigs.py` → `db/seeds/legacy_enrich.sql` | `make etl-enrich && make enrich-dev` | ✅ done |
-| 4. Invoicing ETL | `cli/etl/extract_invoicing.py` (NOT YET WRITTEN) | tbd | ❌ pending |
+| Script | Output | Dev status | Prod status |
+|---|---|---|---|
+| `extract_gigs.py` | `legacy_gigs.sql` | ✅ loaded | ✅ loaded |
+| `enrich_gigs.py` | `legacy_enrich.sql` | ✅ loaded | ✅ loaded |
+| `extract_songs.py` | `legacy_songs.sql` | ✅ loaded (432 songs) | ❌ pending |
+| `extract_setlists.py` | `legacy_setlists.sql` | ✅ loaded (2252 setlist_songs) | ❌ pending |
+| `enrich_spotify.py` | `legacy_spotify.sql` | ✅ loaded (399/432 = 92%) | ❌ pending |
+| `extract_invoicing.py` | `legacy_invoicing.sql` | ✅ loaded (64 gigs, 388 personnel rows) | ❌ pending |
 
-Stage 4 is gated behind `cli/etl/INVOICING_ETL_SPEC.md` — read it in full before touching
-the script. Source data lives at `old-files/gig-invoicing.xlsx`.
-
----
-
-## What was done in the last Cowork session
-
-### Schema migrations written (not yet applied to any DB)
-
-- `db/migrations/006_users_email.sql` — adds nullable `email VARCHAR(255)` to `users`
-- `db/migrations/007_gig_personnel_schema.sql` — two changes to `gig_personnel`:
-  1. `role` ENUM renamed from person-nouns (vocalist, guitarist …) to instrument/function
-     nouns: `vocals`, `guitar`, `bass`, `drums`, `keyboards`, `sound_engineering`, `other`
-  2. `fee_cents` made nullable (NULL = partner fee not tracked; 0 = confirmed zero; >0 = amount)
-  The migration contains a commented-out UPDATE block for remapping any pre-existing rows.
-
-Apply both to dev first:
-```
-make migrate-dev FILE=db/migrations/006_users_email.sql
-make migrate-dev FILE=db/migrations/007_gig_personnel_schema.sql
-```
-Then to prod when ready.
-
-### Musician seed written
-
-`db/seeds/musicians.sql` — idempotent INSERT IGNORE for all 19 roster members.
-All seeded as `role = 'musician'` with `'!'` password sentinel (locked; cannot log in).
-INSERT IGNORE preserves any existing partner accounts (Tuomas/Toni/Joni/Lauri) with
-higher-privilege roles intact.
-
-Apply after migrations 006 + 007:
-```
-make seed-musicians        # dev
-make seed-musicians-prod   # prod
-```
-
-### PHP updated to new role ENUM values
-
-- `src/modules/gigs/personnel_add.php` — `$validRoles` updated
-- `src/modules/gigs/detail.php` — role `<option>` values, display rendering, and
-  null-safe `fee_cents` display updated
-
-### INVOICING_ETL_SPEC.md — all 🚩 flags resolved
-
-The following previously-flagged items are now confirmed and updated in the spec:
-
-1. Leevi Kähkönen 2022-07-23 (Kaisa Korpisaari): fee **120.97€ net** (in KULUT)
-2. Leevi Kähkönen 2022-07-30 (Julle Storberg): fee **169.35€ net** = ROUND(210/1.24, 2) (in KULUT)
-3. Marikki Rieppola 2023-07-28: **Emil Lamminmäki absent**, Erkki Sippel on bass.
-   NB: Emil may appear in source data as "Jorgos Riverside" — treat as the same person;
-   Emil Lamminmäki is the legal name.
-4. Kaisa Heinimaa 2023-07-29: **Emil Lamminmäki absent**, Antti Saari on bass.
-5. Ulosottolaitos 2024-09-12: **Mortti WAS on the gig** (fee 251.92€ in his column, col 20).
-   Iris Toivonen in MUUT (fee 251.92€). Alina absent. Calendar `(MORTTI)` was correct.
-6. MIKSAAJAN PALKKIO (col 8) is **role-generic**, not Toni-specific. Valtteri Alanen's
-   engineering fee also appears in this column on his gigs. MIKSAUSKREDIITIT is the credit
-   accumulator; on Valtteri gigs his fee is included in col 8 and deducted from the credit
-   sum so Toni accrues nothing for gigs he didn't do. Valtteri's fee is NOT in KULUT or MUUT.
+### Manual follow-up items
+- `db/seeds/spotify_manual.sql` — 33 unresolved songs need Spotify track IDs added manually
+- `db/seeds/legacy_setlists_unmatched.txt` — 63 setlist entries unmatched; review needed
 
 ---
 
-## What is NOT done yet (scope of next session)
+## Branch state
 
-### Still the only remaining prerequisite before the ETL script
+Current open branch: `feat/setlist-etl` — contains all ETL scripts above.
+**Not yet merged to dev.** Pending: PR → dev, then apply migration 014 to prod, then load
+all seeds to prod.
 
-- **KULUT decision** (spec §Prerequisites item 3): decide whether to add a
-  `gig_expenses_total_cents INT` column to `gigs` before writing the ETL, or defer it
-  entirely to Phase 7 (bookkeeping module). The ETL spec recommends deferral; confirm with
-  Tuomas before adding schema.
-
-### The ETL script itself: `cli/etl/extract_invoicing.py`
-
-Produces `db/seeds/legacy_invoicing.sql` with two classes of statements:
-1. `UPDATE gigs SET quoted_price_cents = <keikkapalkkio_cents>` — for all delivered gigs
-   where keikkapalkkio > 0. Do NOT update the three zero-fee gigs listed in the spec.
-2. `INSERT INTO gig_personnel …` — one row per musician per gig. Lineup source depends
-   on whether the gig has an invoicing row:
-   - **Has invoicing row (delivered gig)**: derive presence from fee columns + documented
-     exceptions. Partner slots always inserted (fee_cents = NULL); external slots inserted
-     where fee > 0.
-   - **No invoicing row (future / ongoing quote)**: `gig-invoicing.xlsx` has no data for
-     these. Derive lineup entirely from the Google Calendar event description (parenthetical
-     2024 format or structured HTML 2025 format — see spec). The legacy seed includes future
-     gigs from `extract_gigs.py`, so this case will arise and must be handled in the same
-     pass.
-
-Full details, column map, matching strategy, and all personnel exceptions are in
-`cli/etl/INVOICING_ETL_SPEC.md`. Read it before writing a line of code.
-
-This session did **NOT** touch gig fees or gig_personnel rows — those are entirely the
-responsibility of `extract_invoicing.py`.
+Prod deployment sequence (once branch is merged):
+```
+make seed-musicians-prod
+make migrate-prod FILE=db/migrations/013_valtteri_transport_fix.sql  # if not already applied
+make migrate-prod FILE=db/migrations/014_songs_extension.sql
+make import-legacy-songs-prod
+make import-legacy-setlists-prod
+make import-legacy-spotify-prod
+make import-legacy-invoicing-prod
+```
 
 ---
 
-## Setlist ETL — separate work stream
+## Migrations written but NOT yet applied (Phase 6–7)
 
-A parallel ETL work stream for songs and setlists has been scoped and specced. It is
-independent of the invoicing ETL and can proceed in either order.
+These exist in `db/migrations/` but are deferred to the bookkeeping module phase.
+Do not apply during normal feature work.
 
-Key files:
-- `cli/etl/SETLIST_ETL_SPEC.md` — full spec (source files, format eras, schema, Spotify plan)
-- `db/migrations/008_setlists.sql` — songs/setlists/setlist_songs schema (already applied)
-- `db/migrations/014_songs_extension.sql` — songs metadata + setlists.set_type (NOT YET applied)
+- `015_bookkeeping_schema.sql` — double-entry ledger (`accounts`, `vat_rate_schedule`,
+  `journal_events`/`journal_lines`), `partner_credit_events`/balances VIEW
+- `016_documents_schema.sql` — document storage (`documents` table with tiered extraction
+  status, `km_rates` seeded 2022–2026), ALTER `journal_events` for `document_id` FK;
+  also adds `storage/` bind-mount (already in docker-compose.yml)
 
-Prerequisites completed: Spotify Developer app created (Client Credentials, HTTPS redirect URI);
-`SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` in `.env`, `.env.dev`, and prod `.env`;
-`spotipy>=2.23` added to `cli/etl/requirements.txt`.
+Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 
-Four public Spotify playlists are the primary `spotify_track_id` seed source (see spec
-§Resolution strategy for playlist IDs and two-phase approach). The karaoke playlist also
-seeds `karaoke_eligible = 1` on matched songs.
+---
 
-Next steps (in order):
-1. Apply migration 014 to dev: `make migrate-dev FILE=db/migrations/014_songs_extension.sql`
-2. Implement `cli/etl/extract_songs.py` → `db/seeds/legacy_songs.sql`
-3. Implement `cli/etl/extract_setlists.py` → `db/seeds/legacy_setlists.sql`
-4. Implement `cli/etl/enrich_spotify.py` → `db/seeds/legacy_spotify.sql` (+ karaoke_eligible UPDATEs)
+## Next steps (in priority order)
 
-Branch: `feat/setlist-etl`. See spec for full output file plan and parsing rules.
+1. **Merge feat/setlist-etl → dev** — open PR; ensure migration 014 rename is correct
+2. **Prod deployment** — sequence above
+3. **Fill spotify_manual.sql** — 33 songs need manual Spotify track ID lookup
+4. **Phase 4 feature work** — see TODO.md for scoped items (venue edit UI, lineup auto-fill,
+   inquiry extractor polish); all marked `[copilot]`
 
 ---
 
@@ -151,9 +81,11 @@ Branch: `feat/setlist-etl`. See spec for full output file plan and parsing rules
 
 1. `CLAUDE.md` — non-negotiable conventions
 2. `AGENTS.md` — architecture reference
-3. `cli/etl/INVOICING_ETL_SPEC.md` — full invoicing ETL spec (all flags now resolved)
-4. `cli/etl/SETLIST_ETL_SPEC.md` — setlist ETL spec
-5. `cli/etl/BOOKKEEPING_CONTEXT.md` — bookkeeping/invoicing filesystem map, data formats, VAT flow (Phase 6–7 reference)
-6. `cli/etl/tappio_format_notes.md` — Tappio `.tlk` format spec (generated by Windows Claude, 2026-05-12)
-7. `db/migrations/007_gig_personnel_schema.sql` — gig_personnel ENUM/nullable changes
-8. `cli/etl/enrich_gigs.py` — reference implementation for the fuzzy match + SQL emit pattern
+3. `TODO.md` — current task list
+4. `dev-log.md` — session-by-session history + last suggested next steps
+5. `cli/etl/INVOICING_ETL_SPEC.md` — invoicing ETL spec (for reference; script is done)
+6. `cli/etl/SETLIST_ETL_SPEC.md` — setlist ETL spec (for reference; scripts are done)
+7. `cli/etl/BOOKKEEPING_CONTEXT.md` — bookkeeping/invoicing filesystem map, data formats,
+   VAT flow, partner credit mechanics, document storage design (Phase 6–7 reference)
+8. `cli/etl/tappio_format_notes.md` — Tappio `.tlk` format spec
+9. `cli/etl/nda_format_spec.md` — Nordea TITO `.nda` format spec

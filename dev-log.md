@@ -5,6 +5,58 @@ Format: date · who · what was done · suggested next steps.
 
 ---
 
+## 2026-05-14 — Bookkeeping schema + context documentation
+
+**Branch:** `feat/setlist-etl` (documentation/schema only — no migrations applied yet)
+
+### Done
+- Explored `management/financial/varjokirjanpito.xlsx` in full: all sheets read (tuntikrjp,
+  tilit, matkalaskut, matkaloki, paivakirja, myynnit-tuntikrjp). Fully understood partner
+  credit balance model (gig earnings + hourly work − payments out).
+- Explored `management/financial/keikkapalkat.xlsx`: gig earnings structure, fee split
+  formula (miksaajan palkkio = 10% net, rest split among musicians), payment log on right.
+- Explored `management/accounting/ostolaskut/matkalaskut/xlsx/` travel invoices (Tuomas
+  monthly batches, Toni/Lauri occasional). VSYP Matkalasku format fully documented.
+- Read `241231-mikael-siirtovelat.pdf`: Mikael's deferred artist fee liability model
+  (accumulated 2844.76€ as of Dec 2024, paid out in irregular chunks).
+- Updated `cli/etl/BOOKKEEPING_CONTEXT.md`: added §3 (partner credit mechanics),
+  §4 (travel invoicing flows), resolved both previously-open questions; renumbered
+  sections; updated ETL sequencing table; corrected ostolaskut directory structure.
+- Written `db/migrations/015_bookkeeping_schema.sql`: full Phase 6-7 ledger schema
+  (accounts, vat_rate_schedule, journal_events, journal_lines, partner_credit_events,
+  plus validation views). NOT yet applied.
+- Written `db/migrations/016_documents_schema.sql`: document storage system
+  (`documents` table, `km_rates` config, ALTER `journal_events` for document FK).
+- Added `storage/documents/` directory skeleton + gitignore rules.
+- Updated `docker-compose.yml` with storage bind-mount.
+- Updated `AGENTS.md`: storage directory in repo map, PHP auth gate rule in §5.
+- Updated `BOOKKEEPING_CONTEXT.md`: corrected musician fee invoice type, travel
+  reimbursements don't affect partner credit, five credit mechanisms, Mikael
+  siirtovelat = snapshot (live total in keikkapalkat.xlsx), oy-tavarainventaario
+  deductions, document migration sequencing added to ETL table.
+- Updated CHANGELOG.md and CONTEXT_PROMPT.md.
+
+### Next steps (immediate — Claude Code)
+1. **Merge feat/setlist-etl → dev** — open PR; migration rename already done (013→014).
+2. **Prod deployment** (after merge):
+   ```
+   make seed-musicians-prod
+   make migrate-prod FILE=db/migrations/013_valtteri_transport_fix.sql
+   make migrate-prod FILE=db/migrations/014_songs_extension.sql
+   make import-legacy-songs-prod
+   make import-legacy-setlists-prod
+   make import-legacy-spotify-prod
+   make import-legacy-invoicing-prod
+   ```
+3. **Fill spotify_manual.sql** — 33 songs need manual Spotify track IDs.
+4. **Phase 4 feature work** — venue edit UI, lineup auto-fill, inquiry polish (all `[copilot]` in TODO.md).
+
+### Migrations 015 + 016 — when to apply
+Deferred to Phase 6-7 (bookkeeping module). Do not apply during current feature work.
+See `cli/etl/BOOKKEEPING_CONTEXT.md` for full Phase 6-7 sequencing.
+
+---
+
 ## 2026-05-13 — Invoicing ETL + Spotify fixes
 
 **Branch:** `feat/setlist-etl`

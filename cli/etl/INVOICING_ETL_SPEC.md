@@ -47,8 +47,8 @@ Not clean travel expenses. Formula evolved across three eras:
   incorporating a percentage of net revenue. `<raw_costs>` is the sum of expense components.
 
 **ETL decision**: Do NOT map KULUT to `other_travel_costs_cents`. It is accounting data
-belonging to Phase 7 (bookkeeping module). The total is still useful as a reference figure;
-consider a `gig_expenses_total_cents` field on gigs, or defer entirely to Phase 7.
+belonging to Phase 7 (bookkeeping module). `gig_expenses_total_cents` is deferred to Phase 7;
+KULUT is not imported by this ETL script.
 
 ---
 
@@ -250,8 +250,8 @@ Special cases:
    - `role` ENUM updated to: `vocals`, `guitar`, `bass`, `drums`, `keyboards`,
      `sound_engineering`, `other` (migration 007)
 
-3. **KULUT decision**: Decide whether to add `gig_expenses_total_cents INT` to gigs
-   before writing the ETL, or defer entirely to Phase 7.
+3. ✅ **KULUT decision**: Deferred to Phase 7 (bookkeeping module). `gig_expenses_total_cents`
+   will not be added to `gigs` at this stage. The ETL script does not import KULUT data.
 
 4. ✅ **All 🚩 flags resolved** (see updated exceptions above).
 

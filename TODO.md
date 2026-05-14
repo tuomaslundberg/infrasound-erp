@@ -23,9 +23,9 @@
 
 ## feat/setlist-etl — pending merge
 
-- [ ] **Rename migration** — branch has `013_*.sql`; `013_valtteri_transport_fix.sql` is
-      already on `dev`; rename setlist-etl migration to `014_*.sql` before merging
-- [ ] **Merge feat/setlist-etl → dev** — standard PR; apply migration 014 to dev + prod
+- [x] **Rename migration** — renamed to `014_songs_extension.sql` ✓
+- [ ] **Merge feat/setlist-etl → dev** — standard PR; apply migration 014 to dev + prod;
+      then run prod deployment sequence (see `cli/etl/CONTEXT_PROMPT.md`)
 
 ---
 
@@ -62,9 +62,8 @@
 
 ## Phase 6 — Invoicing
 
-- [ ] **Schema: `km_rates`** — `(year INT PK, rate_cents_per_km INT NOT NULL)`; Finnish
-      Verohallinto km-reimbursement rate by year; never hardcode in business logic;
-      seed with historical rates  `[copilot]`
+- [x] **Schema: `km_rates`** — done in `db/migrations/016_documents_schema.sql`;
+      seeded with Verohallinto rates 2022–2026 (base/trailer/passenger categories)
 - [ ] **Schema: `outgoing_invoices`, `incoming_invoices`** — outgoing ties to `gig_id`;
       fields: number, issue date, due date, status, amount in eurocents  `[copilot]`
 - [ ] **Outgoing invoice creation** — generate from confirmed gig; **prerequisite**:
@@ -76,5 +75,15 @@
 
 ## Phase 7 — Accounting
 
+*Schema foundation written (migrations 015 + 016) — not yet applied. See
+`cli/etl/BOOKKEEPING_CONTEXT.md` for full design.*
+
+- [ ] **Apply migrations 015 + 016** — prerequisite for all Phase 7 work
+- [ ] **Document migration** — copy management/ files → `storage/documents/`; index in DB
+- [ ] **Tappio `.tlk` import** — historical ledger events 2021–2025
+- [ ] **`.nda` bank statement import** — auto-classify + manual review queue
+- [ ] **Partner credit seed** — from `old-files/internal-bookkeeping.xlsx` + `old-files/gig-invoicing.xlsx`
+- [ ] **Inbound invoice extraction pipeline** — pdftotext → LLM → LLM vision tiers;
+      human review queue; `extraction_status` field gates journal event authority
 - [ ] **Basic ledger view** — income vs expenses per period, grouped by gig
 - [ ] **Export to CSV** — for accountant handoff  `[copilot]`
