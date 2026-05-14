@@ -7,7 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `db/seeds/musician_addresses.sql` — explicitly set `default_car=2` for `maxwell.mbare`
+  (was missing; migration 012 only seeded Mortti and Lauri as Car 2). When Maxwell is on
+  a gig, the system was treating him as a duplicate Car 1 driver candidate, silently
+  dropping him, leaving no Car 2 driver, and falling back to merging Lauri/Valtteri into
+  Car 1's route — producing grossly incorrect km (e.g. 481 km for a local Turku gig).
+
 ### Added
+- `PHASE4_SPEC.md` — Feature G: `gig_messages` table (migration 018) to persist raw
+  inquiry text and Webflow webhook payload; display collapsible section on gig detail.
+  Addresses the gap where raw inquiry context was previously discarded after AI extraction.
 - `cli/etl/analyze_setlists.py` — setlist analytics CLI tool. Sections: play frequency
   (total + yearly, top-40, zero-play), recency (last-played per song, stale-candidate
   flagging for in_repertoire songs not played in >2 years), set structure (length

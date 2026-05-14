@@ -5,6 +5,51 @@ Format: date · who · what was done · suggested next steps.
 
 ---
 
+## 2026-05-14 — Sprint close: route fix, repo review, PHASE4_SPEC complete
+
+**Branch:** `feat/setlist-analytics` (ready to PR)
+
+### Done
+- Diagnosed Maxwell Car 2 route bug: `default_car=2` was missing from `musician_addresses.sql`
+  for maxwell.mbare; migration 012 only seeded Mortti + Lauri. Fixed in seed file + dev DB.
+  Result: route calculation now correctly assigns Maxwell as Car 2 driver when present.
+- Added Feature G (gig conversation context) to `PHASE4_SPEC.md`: migration 018
+  (`gig_messages` table), raw text persistence in process_inquiry.php + webflow.php,
+  collapsible display on gig detail. PHASE4_SPEC now covers 7 features A–G.
+- Full repo review pass: updated `CONTEXT_PROMPT.md` (was very stale — still referenced
+  feat/setlist-etl as open branch, 92% Spotify, wrong next steps), `TODO.md` (collapsed
+  stale branch section, added Feature G, added setlist analytics as ✓ in Phase 5),
+  `CHANGELOG.md` (Maxwell fix + Feature G entry).
+- Confirmed on prod: Tilauslomake creates status=confirmed with order_description ✓;
+  webhook debug logging is now safe to remove.
+- Confirmed prod seeds deferred by design: full ETL transition from fresh Dropbox snapshot;
+  migrations 001–014 applied on prod, no seeds yet.
+- Confirmed Spotify UI not yet wired (Phase 5); correct.
+
+### Prod deployment — when ready
+Full sequence once all ETL scripts are finalized and fresh Dropbox snapshot is taken:
+```
+make seed-musicians-prod              # includes Maxwell Car 2 fix
+make seed-musician-addresses-prod
+make geocode-musicians-prod
+make import-legacy-songs-prod
+make import-legacy-setlists-prod
+make import-legacy-spotify-prod
+make import-legacy-invoicing-prod
+# Then apply spotify_manual.sql to prod DB directly
+```
+Migrations 015 + 016 remain deferred (Phase 7).
+
+### Next steps
+1. **PR feat/setlist-analytics → dev → main** — clean 1-commit branch, ready
+2. **Remove webhook debug logging** — safe to do; confirmed working on prod
+3. **Phase 4 sprint** — branch `feat/phase4-polish` from `dev`; feed `PHASE4_SPEC.md`
+4. **Verify setlist analytics** — run `python cli/etl/analyze_setlists.py | head -100`
+   against dev DB; check --generate and --fill flags
+5. **Venue corpus** — pre-crawl checklist (robots.txt, URL structure) before writing script
+
+---
+
 ## 2026-05-14 — Setlist analytics CLI + admin page
 
 **Branch:** `feat/setlist-analytics` (uncommitted — index.lock blocked commit from sandbox; run `git add -A && git commit` from terminal)
