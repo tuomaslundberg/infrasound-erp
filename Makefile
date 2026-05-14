@@ -1,7 +1,7 @@
 .PHONY: up dev down down-dev reset-dev seed seed-musicians seed-musicians-prod \
         seed-musician-addresses seed-musician-addresses-prod geocode-musicians \
         logs logs-dev shell-db shell-db-dev \
-        migrate migrate-dev etl-gigs etl-enrich etl-songs etl-setlists etl-spotify etl-invoicing \
+        migrate migrate-dev etl-gigs etl-enrich etl-songs etl-setlists etl-spotify etl-invoicing import-spotify-playlist \
         import-legacy-gigs import-legacy-gigs-prod \
         import-legacy-songs import-legacy-songs-prod \
         import-legacy-setlists import-legacy-setlists-prod \
@@ -193,6 +193,11 @@ import-legacy-spotify-prod:
 	docker compose exec -T db \
 	  sh -c 'mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' \
 	  < db/seeds/legacy_spotify.sql
+
+# Import songs from a Spotify playlist (upsert: update existing + insert new).
+# Usage: make import-spotify-playlist PLAYLIST=<url_or_id> [FLAGS=--dry-run]
+import-spotify-playlist:
+	python cli/etl/import_spotify_playlist.py $(PLAYLIST) $(FLAGS)
 
 # ---------------------------------------------------------------------------
 # Invoicing ETL  (migrations 006 + 007 and musicians.sql must be applied first)
