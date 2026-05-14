@@ -118,6 +118,16 @@ Infrastructure
 │   ├── seeds/
 │   │   └── dev.sql          ← dev fixture data (never run against prod)
 │   └── migrations/
+│
+├── /storage                 ← host bind-mount; NOT under web root; gitignored
+│   └── documents/           ← all business documents (see migration 016)
+│       ├── purchase_invoices/{yyyy}/
+│       ├── sales_invoices/{yyyy}/
+│       ├── travel_invoices/
+│       ├── bank_statements/{yyyy}/
+│       ├── vat_returns/
+│       ├── year_end/
+│       └── other/
 
 
 ⸻
@@ -132,6 +142,8 @@ Each module:
 Modules MUST NOT:
 	•	Reach into other modules’ tables directly
 	•	Contain frontend rendering logic
+	•	Serve files from storage/ directly via Apache — all document access goes through
+	  src/api/documents/get.php, which validates auth before streaming the file
 
 Cross-module interactions happen via explicit service calls.
 

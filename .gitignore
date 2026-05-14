@@ -12,6 +12,18 @@ db/seeds/legacy_gigs*.sql
 db/seeds/legacy_gigs*.txt
 db/seeds/legacy_enrich*.sql
 db/seeds/legacy_enrich*.txt
+db/seeds/legacy_setlists*.sql
+db/seeds/legacy_setlists*.txt
+db/seeds/legacy_spotify*.sql
+db/seeds/spotify_unmatched*.txt
+db/seeds/legacy_invoicing*.sql
+db/seeds/legacy_invoicing*.txt
+.spotify_cache
+.cache
 *test.yaml
 composer-setup.php
 *.code-workspace
+# Document storage — imported documents stay on host only (private data, large files).
+# ERP-generated outputs (e.g. invoice PDFs produced by the invoicing module) may be
+# committed selectively if they are not PII-bearing, but the default is to exclude all.
+storage/documents/

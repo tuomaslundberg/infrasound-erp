@@ -47,8 +47,8 @@ Not clean travel expenses. Formula evolved across three eras:
   incorporating a percentage of net revenue. `<raw_costs>` is the sum of expense components.
 
 **ETL decision**: Do NOT map KULUT to `other_travel_costs_cents`. It is accounting data
-belonging to Phase 7 (bookkeeping module). The total is still useful as a reference figure;
-consider a `gig_expenses_total_cents` field on gigs, or defer entirely to Phase 7.
+belonging to Phase 7 (bookkeeping module). `gig_expenses_total_cents` is deferred to Phase 7;
+KULUT is not imported by this ETL script.
 
 ---
 
@@ -104,6 +104,12 @@ Toni, Tuomas, Joni, and Lauri are partners; create them with appropriate roles i
 
 The "default" external slot has rotated over time. Use the fee columns as the authoritative
 presence signal (fee > 0 = present), not a hardcoded default list.
+
+**Current default 6 (post-2023, used by webflow.php and the auto-fill feature):**
+Tuomas (keyboards), Toni (sound_engineering), Joni (drums), Lauri (guitar),
+Alina Kangas (vocals), Mortti Markkanen (bass).
+Mikael Lehto was the regular vocalist until mid-2023 when he quit Saturday Band;
+he appears heavily in historical data but is NOT in the current default lineup.
 
 Partner defaults (Tuomas, Toni, Joni, Lauri) are assumed present on every gig UNLESS
 explicitly listed as an exception below.
@@ -250,8 +256,8 @@ Special cases:
    - `role` ENUM updated to: `vocals`, `guitar`, `bass`, `drums`, `keyboards`,
      `sound_engineering`, `other` (migration 007)
 
-3. **KULUT decision**: Decide whether to add `gig_expenses_total_cents INT` to gigs
-   before writing the ETL, or defer entirely to Phase 7.
+3. ✅ **KULUT decision**: Deferred to Phase 7 (bookkeeping module). `gig_expenses_total_cents`
+   will not be added to `gigs` at this stage. The ETL script does not import KULUT data.
 
 4. ✅ **All 🚩 flags resolved** (see updated exceptions above).
 

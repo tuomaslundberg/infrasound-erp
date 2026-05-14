@@ -7,6 +7,98 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `db/migrations/016_documents_schema.sql` — document storage system: `documents` table
+  (indexes all stored files by type/date/counterparty/storage_path; supports purchase
+  invoices, sales invoices, travel invoices, bank statements, VAT returns, year-end docs);
+  `km_rates` config table (per-year mileage reimbursement rates seeded from Verohallinto
+  decisions 2022–2026, three categories: base/trailer/passenger); ALTER `journal_events`
+  to add nullable `document_id` FK. Establishes storage/ bind-mount convention (files
+  served only via PHP auth gate, never directly by Apache). ETL note in file for
+  `extract_documents.py` (Phase 6-7).
+- `storage/documents/` directory structure (gitignored; host bind-mount added to
+  docker-compose.yml); storage access rule added to AGENTS.md §5.
+- `db/migrations/015_bookkeeping_schema.sql` — Phase 6-7 foundation schema: `accounts`
+  (chart of accounts seeded with Tappio codes), `vat_rate_schedule` (rate changes by
+  fiscal year, e.g. 14%→13.5% from 2026), `journal_events` + `journal_lines`
+  (double-entry ledger matching Tappio's payment-based approach; amounts as signed
+  eurocents; debit=positive convention), `partner_credit_events` + `partner_credit_balances`
+  VIEW (per-partner earnings/payments tracker separate from statutory ledger), and
+  `journal_balance_check` VIEW for integrity verification.
+- `cli/etl/BOOKKEEPING_CONTEXT.md` — expanded with: §3 partner credit balance mechanics
+  (varjokirjanpito sheets, tilit structure, keikkapalkat fee split formula, current
+  balances); §4 travel invoicing flows (VSYP Matkalasku format, three template types,
+  mileage rates 0.55€/km 2026 / 0.59€/km 2025, daily allowance schedule, Tappio
+  account treatment, ostolaskut/matkalaskut/ filing structure); resolved §8 open
+  questions 1 and 2; updated ETL sequencing table.
+- `cli/etl/extract_songs.py` — parses `old-files/repertoire/playlist-gig.txt` and
+  `playlist-gig-jazz.txt` into `db/seeds/legacy_songs.sql` (432 songs: 390 gig-band
+  repertoire + 42 jazz). Handles three column layouts per genre section
+  (`artist<tab>title<tab>key_orig<tab>key_our<tab>…`); two-pass genre-group pre-scan
+  assigns languages correctly (1 group→fi, 2→fi+en, 3→fi+sv+en) without false sv/en
+  swaps; `keys.txt` parsed for HD slot and HD status. Output gitignored only if PII
+  present — songs have none, so `legacy_songs.sql` is committed.
+  Flags: `--dry-run`, `--stats`.
+- `cli/etl/extract_setlists.py` — parses per-gig setlist files under
+  `old-files/setlists/` into `db/seeds/legacy_setlists.sql`. Handles three eras:
+  Era 1 (`setlist-internal-*.txt`, 2021-2022, `SETTI N (stats)` headers + tabbed songs);
+  Era 2 (`setlist-gig-*.txt`, early 2023, numeric codes without tabs);
+  Era 3 (`setlist-gig-*.txt`, late 2023+, `---------- LABEL ----------` headers + tabs).
+  Set types inferred from header content (`ENCORE`, `LOUNGE`, `KARAOKE-SETTI`, generic
+  `set`). Singer annotation extracted from `Singer: Artist – Title` pattern.
+  Song matching: exact → prefix/suffix (min 10 chars) → fuzzy (0.80 threshold) → jazz
+  title-only for lounge instrumentals. Skips `// ` alternative-song lines and `ETSI`
+  placeholders. Result: 63/63 gigs matched, 208 sets, 2252 songs inserted, 63 unmatched
+  (2.7%) logged to `db/seeds/legacy_setlists_unmatched.txt`. Output gitignored.
+  Flags: `--dry-run`, `--stats`.
+- `cli/etl/enrich_spotify.py` — resolves Spotify track IDs for the `songs` table.
+  Phase 1: fetches four known Saturday playlists (repertoire, suggestions, live karaoke,
+  jazz); fuzzy-matches tracks against unresolved songs (threshold 0.85); the karaoke
+  playlist additionally sets `karaoke_eligible = 1` on matched rows.
+  Phase 2: fallback Spotify Search API for remaining unresolved songs (field-qualified
+  query → plain fallback; 0.35 s sleep to respect rate limit). Emits idempotent UPDATE
+  statements to `db/seeds/legacy_spotify.sql`; unmatched songs written to
+  `db/seeds/spotify_unmatched.txt`. Requires `pip install spotipy` and
+  `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` in `.env`/`.env.dev`. Output gitignored.
+  Flags: `--dry-run`, `--stats`, `--phase1-only`.
+- `Makefile` — new targets: `etl-songs` (regenerate `legacy_songs.sql`);
+  `import-legacy-songs` / `import-legacy-songs-prod` (load songs into dev/prod DB);
+  `etl-setlists` (regenerate `legacy_setlists.sql`; requires running DB with gigs + songs);
+  `import-legacy-setlists` / `import-legacy-setlists-prod`;
+  `etl-spotify` (resolve Spotify IDs; requires Spotify credentials);
+  `import-legacy-spotify` / `import-legacy-spotify-prod`.
+  Full workflow: `make etl-songs → make import-legacy-songs → make etl-setlists →
+  make import-legacy-setlists → make etl-spotify → make import-legacy-spotify`.
+
+- `cli/etl/extract_invoicing.py` — populates `quoted_price_cents` and `gig_personnel` from
+  `old-files/gig-invoicing.xlsx` (64 delivered gigs, 2020-02 → 2025-12). Fuzzy-matches
+  invoicing rows to DB gigs by (date ± 3 days, customer name ≥ 0.75 similarity). For each
+  match: emits `UPDATE gigs SET quoted_price_cents` (skipped for zero-gross RAPUILMIÖ /
+  Rami Lehtinen gigs); emits `DELETE + INSERT` for `gig_personnel`.
+  Personnel logic: partners (Tuomas, Toni, Joni, Lauri) present by default; external
+  musicians (Mikael, Emil, Alina, Mortti, Samuel, Leevi) included when fee column > 0;
+  MUUT column mapped to confirmed musicians via hardcoded calendar log; Valtteri Alanen
+  assigned sound_engineering on 6 documented 2025 gigs (Toni absent); partner exceptions
+  and fee-in-KULUT substitutes (Erkki Sippel, Antti Saari, Leevi Kähkönen, Eetu Hämäläinen)
+  handled per spec. KULUT column deferred to Phase 7. Result: 64/64 matched, 0 unmatched,
+  388 gig_personnel rows. Output gitignored.
+  Flags: `--dry-run`, `--stats`.
+- `Makefile` — new targets: `etl-invoicing`, `import-legacy-invoicing`,
+  `import-legacy-invoicing-prod`.
+
+- `db/migrations/013_songs_extension.sql` — extends `songs` with all columns needed for
+  setlist ETL and Spotify integration: `spotify_track_id`, `genre`, `language`, `release_year`,
+  `is_jazz`, `in_repertoire`, `hd_slot`, `hd_status`, `guide_tone_key`, `key_our`, `key_orig`,
+  `key_transposition_st`, `has_gtr2`, `karaoke_eligible`. Extends `setlists` with `set_type`
+  ENUM (`set`, `lounge`, `encore`, `karaoke`) for analytics-friendly set classification.
+- `cli/etl/SETLIST_ETL_SPEC.md` — comprehensive design spec for the setlist/song ETL:
+  source file map, three-era setlist format documentation (2021-2022 `setlist-internal` /
+  early-2023 numeric codes / 2023+ current format), `playlist-gig.txt` parsing map with
+  genre/language group structure, `keys.txt` section guide with full-English→shorthand key
+  normalisation table, Spotify integration plan (Client Credentials flow, `enrich_spotify.py`
+  enrichment pass), analytics use-case motivation, and Ableton XML structure notes for future
+  automation.
+
 ### Fixed
 - **TravelCalculator: `transport_override='car_owner'` treated as `local`** — schema
   documents this override as "drives own non-band car this gig, not billed"; previously

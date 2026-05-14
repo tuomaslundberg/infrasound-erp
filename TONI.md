@@ -33,7 +33,7 @@ Tuomas makes final calls on architecture, prod deployments, and DB schema change
 | `AGENTS.md` | Architecture spec — authoritative for all contributors and AI agents |
 | `TODO.md` | ERP collaborative task list — check here before starting anything |
 | `CHANGELOG.md` | History of every functional change |
-| `db/schema/core.sql` | Authoritative DB schema reference |
+| `db/schema/core.sql` | Authoritative DB schema reference (core tables; incremental changes are in `db/migrations/`) |
 
 ---
 
