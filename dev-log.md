@@ -5,6 +5,55 @@ Format: date · who · what was done · suggested next steps.
 
 ---
 
+## 2026-05-14 — Setlist analytics CLI + admin page
+
+**Branch:** `feat/setlist-analytics` (uncommitted — index.lock blocked commit from sandbox; run `git add -A && git commit` from terminal)
+
+### Done
+- Created `cli/etl/analyze_setlists.py`:
+  - `SetlistAnalytics` class: four cached query methods — `play_frequency()`, `recency()`,
+    `set_structure()`, `cooccurrence()`. Intentionally I/O-free so it can be embedded in
+    a future PHP wrapper (subprocess or port to PDO).
+  - `SetlistBuilder` class: `fill_and_order(seed_ids, target_runtime_min, set_count)` —
+    primary real-world function: takes unordered customer picks, fills/trims to target
+    runtime (using configurable avg song duration, default 3.5 min), orders by greedy
+    co-occurrence TSP, divides into sets. `generate_fresh(n, set_count)` for from-scratch
+    generation. Scoring: 0.6×frequency + 0.4×recency (stale songs given higher weight).
+  - CLI modes: default Markdown report to stdout, `--json`, `--generate N`,
+    `--fill ID,ID,...  --target MINUTES --sets N`, `--seed` for reproducibility.
+  - Set structure uses ROW_NUMBER() window function for gap-safe consecutive-pair
+    transitions (sort_order has gaps due to swap-based reorder).
+- Created `src/modules/admin/setlist_analytics.php` at `/admin/setlist-analytics`:
+  - Three-tab Bootstrap 5 layout: Top-40 (with year columns 2013–present),
+    Recency review (in_repertoire=1, not played >2yr; red highlight >3yr, grey = never),
+    Never-played.
+  - Summary strip: total songs, in-repertoire count, total play slots, stale count,
+    never-played count.
+  - PHP queries mirror Python definitions exactly (same recency threshold, same join logic).
+- Wired route in `src/index.php` and nav link in `src/templates/layout.php`.
+- Updated CHANGELOG.md.
+
+### Next steps
+1. **Commit from terminal** (index.lock blocked sandbox git):
+   ```
+   cd ~/projects/infrasound.fi
+   git add cli/etl/analyze_setlists.py src/modules/admin/setlist_analytics.php \
+           src/index.php src/templates/layout.php CHANGELOG.md
+   git commit -m "feat: setlist analytics CLI + admin page"
+   ```
+2. **Run the report against dev DB** to verify queries work:
+   ```
+   python cli/etl/analyze_setlists.py | head -100
+   python cli/etl/analyze_setlists.py --generate 20
+   ```
+3. **Test --fill flow** with a few real song IDs from the DB as a smoke-test of the builder.
+4. **Duration column (future)** — add `duration_ms INT DEFAULT NULL` to songs + populate
+   via Spotify track metadata API; SetlistBuilder already reads `avg_song_duration_min` as
+   a constructor param, so the upgrade path is: pass per-song durations once available.
+5. **PR feat/setlist-analytics → dev** when satisfied.
+
+---
+
 ## 2026-05-14 — Phase 4 + venue ETL specs; Spotify coverage completed
 
 **Branch:** `main` / `dev` (in sync)

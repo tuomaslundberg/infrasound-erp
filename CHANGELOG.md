@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `cli/etl/analyze_setlists.py` — setlist analytics CLI tool. Sections: play frequency
+  (total + yearly, top-40, zero-play), recency (last-played per song, stale-candidate
+  flagging for in_repertoire songs not played in >2 years), set structure (length
+  distribution, openers, closers, consecutive-pair transitions via ROW_NUMBER window),
+  co-occurrence (most common same-set pairs). Default Markdown output; `--json` for
+  machine-readable export. `SetlistAnalytics` and `SetlistBuilder` classes are
+  intentionally I/O-free for future ERP embedding.
+- `cli/etl/analyze_setlists.py` — `SetlistBuilder` class with two entry points:
+  `fill_and_order(seed_ids, target_runtime_min)` — primary real-world function: takes
+  unordered customer picks + target runtime, fills/trims the pool, orders by co-occurrence
+  affinity (greedy nearest-neighbour), and divides into sets; `generate_fresh(n_songs)`
+  — full generation from scratch. CLI flags: `--generate N`, `--fill ID,ID,...`,
+  `--target MINUTES`, `--sets N`, `--seed`.
+- `src/modules/admin/setlist_analytics.php` — ERP admin page at `/admin/setlist-analytics`
+  (owner+ role). Three-tab layout: Top-40 play-count table with per-year column breakdown
+  (2013–present); Recency review list (in_repertoire=1, not played in >2yr, rows
+  highlighted red at >3yr / grey for never-played); Never-played list. Summary strip
+  shows corpus totals.
+- Route `GET /admin/setlist-analytics` registered in `src/index.php`.
+- "Setlist Analytics" nav link added to admin navbar in `src/templates/layout.php`.
 - `db/migrations/016_documents_schema.sql` — document storage system: `documents` table
   (indexes all stored files by type/date/counterparty/storage_path; supports purchase
   invoices, sales invoices, travel invoices, bank statements, VAT returns, year-end docs);
