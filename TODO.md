@@ -2,6 +2,7 @@
 *Collaborative task list for ERP development. Version-controlled; canonical upstream for ERP tasks.*
 *Tuomas owns architecture and prod decisions. Toni contributes via PRs to `dev`.*
 *Format: `- [ ]` open · `- [x]` done · `[copilot]` good AI agent candidate · `[AWAIT]` external dependency*
+*`TODO.md.legacy` retired 2026-05-15 — all surviving items incorporated below or in `ROADMAP.md`.*
 
 ---
 
@@ -16,12 +17,6 @@
 - [x] **Disable Webflow email notifications** ✓
 
 ---
-
-## In progress / pending merge
-
-- [ ] **PR feat/setlist-analytics → dev** — setlist analytics CLI + admin page + Maxwell
-      Car 2 fix (`default_car=2` was missing for maxwell.mbare, caused route calculation
-      to dump Helsinki passengers into Car 1)
 
 ---
 
@@ -48,7 +43,7 @@
       Varsinais-Suomi / Pirkanmaa / Uusimaa; specced in `cli/etl/VENUES_ETL_SPEC.md`;
       do pre-crawl checklist first (robots.txt + URL structure)
 - [ ] **`customer_type` correction pass** — manual data pass on prod after ETL deploy;
-      full list of known non-wedding gigs in `TODO.md.legacy` §Easy issues
+      full list of known non-wedding gigs was in `TODO.md.legacy` §Easy issues (now retired)
 
 ---
 
@@ -89,3 +84,21 @@
       human review queue; `extraction_status` field gates journal event authority
 - [ ] **Basic ledger view** — income vs expenses per period, grouped by gig
 - [ ] **Export to CSV** — for accountant handoff  `[copilot]`
+
+---
+
+## Keep door open  _(future, not currently blocking)_
+
+*See `ROADMAP.md` for the full sprint sequence toward prod readiness.*
+
+- **Acceptance-flow automation** — customer replies accepting the offer → owner pastes reply into
+  the agent → agent transitions gig `quoted → confirmed` and records any new details
+- **ProtonMail inbox integration** — attach saturday@infrasound.fi to the ERP for inquiry triage;
+  blocked by mixed-use inbox complexity
+- **Musician availability reporting** — sign-up / tentative / remove flows; deferred until core
+  ERP is stable; depends on `gig_personnel` table  `[copilot]`
+- **Public inquiry form v2** — more structured Webflow form (Tilauslomake is step 1; richer
+  structured form with capacity/PA questions is future)
+- **Data-driven mileage baseline** — statistical model from historical mileage data to validate
+  TravelCalculator results; partly superseded by route-based calculation, but statistical
+  cross-check still worthwhile long-term

@@ -7,6 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `ROADMAP.md` — broad-strokes 13-sprint sequence toward production readiness; covers
+  Phase 4 implementation through prod ETL deployment and future vision.
+- `TODO.md` — "Keep door open" section: acceptance-flow automation, ProtonMail integration,
+  musician availability reporting, public inquiry form v2, data-driven mileage baseline.
+  Retired `TODO.md.legacy`; surviving items imported above or in ROADMAP.md.
+- `PHASE4_SPEC.md` — Car 2 trip total row added to gig Pricing card spec (Feature C4 addendum).
+
 ### Fixed (Copilot review — PR #39)
 - `analyze_setlists.py` — `stale_songs()` now excludes jazz songs (`is_jazz=1`); the
   recency query adds `s.is_jazz` to SELECT and `stale` flag gates on `not is_jazz`,
