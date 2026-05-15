@@ -7,6 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `ROADMAP.md` — broad-strokes 13-sprint sequence toward production readiness; covers
+  Phase 4 implementation through prod ETL deployment and future vision.
+- `TODO.md` — "Keep door open" section: acceptance-flow automation, ProtonMail integration,
+  musician availability reporting, public inquiry form v2, data-driven mileage baseline.
+  Retired `TODO.md.legacy`; surviving items imported above or in ROADMAP.md.
+- `PHASE4_SPEC.md` — Car 2 trip total row added to gig Pricing card spec (Feature C4 addendum).
+
 ### Fixed
 - `db/seeds/musician_addresses.sql` — explicitly set `default_car=2` for `maxwell.mbare`
   (was missing; migration 012 only seeded Mortti and Lauri as Car 2). When Maxwell is on

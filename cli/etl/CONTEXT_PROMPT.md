@@ -14,7 +14,7 @@ soft deletes, no hardcoded secrets.
 
 ---
 
-## ETL pipeline — current state (as of 2026-05-14)
+## ETL pipeline — current state (as of 2026-05-15)
 
 All legacy ETL scripts are written and loaded into dev DB. See `dev-log.md` for detail.
 
@@ -46,13 +46,14 @@ Do NOT run piecemeal prod imports in the meantime. Migrations 001–014 are appl
 
 ---
 
-## Branch state
+## Branch state (as of 2026-05-15)
 
 | Branch | Status |
 |---|---|
-| `main` | Production — 2 commits behind `dev` (Phase 4 specs, setlist analytics) |
-| `dev` | Integration — clean, 1 commit ahead of main |
-| `feat/setlist-analytics` | 1 commit ahead of dev — setlist analytics CLI + admin page + Maxwell fix; ready to PR |
+| `main` | Production — in sync with `dev` |
+| `dev` | Integration — clean |
+
+All sprint work through setlist analytics + Copilot review fixes is merged to main.
 
 ---
 
@@ -68,15 +69,16 @@ Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 
 ## Next steps (in priority order)
 
-1. **PR feat/setlist-analytics → dev → main** — setlist analytics + Maxwell Car 2 fix
-2. **Phase 4 sprint** — branch `feat/phase4-polish` from `dev`; feed `PHASE4_SPEC.md`;
-   implement Features A–G in order (B before C; G independent)
-3. **Venue corpus ETL** — `cli/etl/extract_venues.py` per `VENUES_ETL_SPEC.md`;
+1. **Phase 4 sprint** — branch `feat/phase4-polish` from `dev`; feed `PHASE4_SPEC.md`;
+   implement Features A–G + Car 2 trip row in Pricing card; do B before C; G is independent
+2. **Venue corpus ETL** — `cli/etl/extract_venues.py` per `VENUES_ETL_SPEC.md`;
    start with pre-crawl checklist (robots.txt, URL structure, category taxonomy)
-4. **Prod ETL deploy** — single transition from fresh Dropbox snapshot; full sequence
-   in `dev-log.md` most recent entry
-5. **Phase 5 setlist builder polish** — reactive reorder, song search from repertoire
-6. **Phase 6 invoicing** — outgoing invoice generation from confirmed gigs
+3. **Phase 5 setlist builder spec** — write `PHASE5_SPEC.md` covering reactive edit view
+   + song search/suggestions (web UI, not the analytics CLI which is already shipped)
+4. **Prod ETL deploy** — single transition from fresh Dropbox snapshot; sequence in `dev-log.md`
+5. **Phase 6 invoicing** — outgoing invoice generation from confirmed gigs
+
+See `ROADMAP.md` for the full 13-sprint sequence toward production readiness.
 
 ---
 
@@ -84,8 +86,6 @@ Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 
 - **Joni's home address** — `Kirkkotie 2, 20540 Turku` may geocode incorrectly; verify
   via geocoding map (Phase 4 Feature A)
-- **Webhook debug logging** — `error_log('Webflow webhook payload: ...')` in
-  `src/modules/webhook/webflow.php`; safe to remove (prod Tilauslomake confirmed working)
 
 ---
 
@@ -94,10 +94,10 @@ Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 1. `CLAUDE.md` — non-negotiable conventions
 2. `AGENTS.md` — architecture reference
 3. `TODO.md` — current task list
-4. `dev-log.md` — session-by-session history + last suggested next steps
-5. `PHASE4_SPEC.md` — Phase 4 sprint spec (7 features: venue UI, entity extraction,
-   lineup auto-fill, gig filters, raw inquiry storage)
-6. `cli/etl/VENUES_ETL_SPEC.md` — venuu.fi venue corpus crawl spec
-7. `cli/etl/BOOKKEEPING_CONTEXT.md` — bookkeeping/invoicing design (Phase 6–7 reference)
-8. `cli/etl/tappio_format_notes.md` — Tappio `.tlk` format spec
-9. `cli/etl/nda_format_spec.md` — Nordea TITO `.nda` format spec
+4. `ROADMAP.md` — broad-strokes 13-sprint sequence toward prod readiness
+5. `dev-log.md` — session-by-session history + last suggested next steps
+6. `PHASE4_SPEC.md` — Phase 4 sprint spec (7 features + Car 2 km display)
+7. `cli/etl/VENUES_ETL_SPEC.md` — venuu.fi venue corpus crawl spec
+8. `cli/etl/BOOKKEEPING_CONTEXT.md` — bookkeeping/invoicing design (Phase 6–7 reference)
+9. `cli/etl/tappio_format_notes.md` — Tappio `.tlk` format spec
+10. `cli/etl/nda_format_spec.md` — Nordea TITO `.nda` format spec
