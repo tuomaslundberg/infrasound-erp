@@ -82,11 +82,6 @@ See `ROADMAP.md` for the full 13-sprint sequence toward production readiness.
 
 ---
 
-## Known issues
-
-- **Joni's home address** — `Kirkkotie 2, 20540 Turku` may geocode incorrectly; verify
-  via geocoding map (Phase 4 Feature A)
-
 ---
 
 ## Key files to read before starting
