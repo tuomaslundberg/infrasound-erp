@@ -15,6 +15,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Retired `TODO.md.legacy`; surviving items imported above or in ROADMAP.md.
 - `PHASE4_SPEC.md` — Car 2 trip total row added to gig Pricing card spec (Feature C4 addendum).
 
+### Fixed (Copilot review — PR #39)
+- `analyze_setlists.py` — `stale_songs()` now excludes jazz songs (`is_jazz=1`); the
+  recency query adds `s.is_jazz` to SELECT and `stale` flag gates on `not is_jazz`,
+  matching the admin page behaviour.
+- `analyze_setlists.py` — `cooccurrence()` no longer truncates the cache on the first
+  call with a small `top_n`; always fetches up to `_COOC_FETCH_LIMIT=1000` pairs and
+  slices on return so `cooccurrence_matrix()` (top_n=500) always sees the full dataset.
+- `analyze_setlists.py` — division-by-zero in `_score()` when all songs have 0 play
+  count: `self._max_plays = max(plays) or 1` (was `max(plays) if plays else 1`).
+- `analyze_setlists.py` — duplicate IDs in `--fill` input are now deduplicated
+  preserving order before building the setlist (was passing to `fill_and_order` verbatim).
+- `analyze_setlists.py` — weighted sampling fallback: if `random.choices()` oversample
+  does not yield enough unique songs after dedup, fall back to exhausting the sorted
+  candidate pool rather than silently producing a short setlist.
+- `analyze_setlists.py` — `--sets` and `--generate` now validated as positive integers
+  before execution; previously 0 or negative values reached `_split_into_sets()` and
+  caused division-by-zero or nonsensical output.
+- `src/modules/admin/setlist_analytics.php` — removed duplicate Bootstrap 5 bundle
+  `<script>` tag; `render_layout()` already injects it.
+- `PHASE4_SPEC.md` — C1 migration snippet now includes the `source VARCHAR(50)` column
+  required by the venue ETL spec's `INSERT IGNORE` statement.
+- `PHASE4_SPEC.md` — all routing examples updated from defunct `?module=...&action=...`
+  query-string style to path-based routes (`/admin/venues/{id}/edit`,
+  `/gigs/{id}/fill-default-lineup`) matching the actual `src/index.php` dispatcher.
+- `cli/etl/VENUES_ETL_SPEC.md` — `INSERT IGNORE` idempotency now requires a unique key
+  on `(name, city, source)`; migration snippet updated to include both the `source`
+  column and the `uq_venues_name_city_source` unique key.
+- `cli/etl/CONTEXT_PROMPT.md` — removed stale "Webhook debug logging" known-issue entry
+  (the logging was removed in this sprint).
+
 ### Fixed
 - `db/seeds/musician_addresses.sql` — explicitly set `default_car=2` for `maxwell.mbare`
   (was missing; migration 012 only seeded Mortti and Lauri as Car 2). When Maxwell is on

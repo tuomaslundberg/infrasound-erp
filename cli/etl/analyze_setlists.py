@@ -215,6 +215,7 @@ class SetlistAnalytics:
                     s.artist,
                     s.title,
                     s.in_repertoire,
+                    s.is_jazz,
                     MAX(g.gig_date) AS last_played
                 FROM songs s
                 LEFT JOIN setlist_songs ss ON ss.song_id = s.id
@@ -222,7 +223,7 @@ class SetlistAnalytics:
                 LEFT JOIN gigs g           ON g.id = sl.gig_id
                                           AND g.gig_date IS NOT NULL
                 WHERE s.deleted_at IS NULL
-                GROUP BY s.id, s.artist, s.title, s.in_repertoire
+                GROUP BY s.id, s.artist, s.title, s.in_repertoire, s.is_jazz
                 ORDER BY last_played ASC, s.artist ASC
                 """
             )
@@ -241,8 +242,10 @@ class SetlistAnalytics:
                 days = None
             d["last_played"] = lp.isoformat() if lp else None
             d["days_since"] = days
+            # Jazz songs are excluded from stale tracking (they have separate performance logic)
             d["stale"] = bool(
                 d["in_repertoire"]
+                and not d.get("is_jazz")
                 and (days is None or days > RECENCY_THRESHOLD_DAYS)
             )
             result.append(d)
@@ -390,42 +393,44 @@ class SetlistAnalytics:
     # 4. Co-occurrence
     # ------------------------------------------------------------------
 
+    # Fetch enough pairs to satisfy cooccurrence_matrix() (500) plus any direct call.
+    _COOC_FETCH_LIMIT = 1000
+
     def cooccurrence(self, top_n: int = 50) -> list[dict]:
         """
         Song pairs that appear together in the same set, ordered by frequency.
         Returns [{song1_id, artist1, title1, song2_id, artist2, title2, count}, ...]
 
         Pairs are canonical (song1_id < song2_id) to avoid double-counting.
+        Always fetches _COOC_FETCH_LIMIT rows and caches the full set so that
+        subsequent calls with different top_n values are not truncated.
         """
-        if self._cooccurrence is not None:
-            return self._cooccurrence[:top_n]
-
-        with self._conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT
-                    s1.id    AS song1_id,
-                    s1.artist AS artist1,
-                    s1.title  AS title1,
-                    s2.id    AS song2_id,
-                    s2.artist AS artist2,
-                    s2.title  AS title2,
-                    COUNT(DISTINCT ss1.setlist_id) AS cooccurrence_count
-                FROM setlist_songs ss1
-                JOIN setlist_songs ss2 ON ss2.setlist_id = ss1.setlist_id
-                                      AND ss2.song_id > ss1.song_id
-                JOIN songs s1 ON s1.id = ss1.song_id
-                JOIN songs s2 ON s2.id = ss2.song_id
-                GROUP BY ss1.song_id, ss2.song_id
-                ORDER BY cooccurrence_count DESC
-                LIMIT %s
-                """,
-                (top_n,),
-            )
-            rows = cur.fetchall()
-
-        self._cooccurrence = [dict(r) for r in rows]
-        return self._cooccurrence
+        if self._cooccurrence is None:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        s1.id    AS song1_id,
+                        s1.artist AS artist1,
+                        s1.title  AS title1,
+                        s2.id    AS song2_id,
+                        s2.artist AS artist2,
+                        s2.title  AS title2,
+                        COUNT(DISTINCT ss1.setlist_id) AS cooccurrence_count
+                    FROM setlist_songs ss1
+                    JOIN setlist_songs ss2 ON ss2.setlist_id = ss1.setlist_id
+                                          AND ss2.song_id > ss1.song_id
+                    JOIN songs s1 ON s1.id = ss1.song_id
+                    JOIN songs s2 ON s2.id = ss2.song_id
+                    GROUP BY ss1.song_id, ss2.song_id
+                    ORDER BY cooccurrence_count DESC
+                    LIMIT %s
+                    """,
+                    (self._COOC_FETCH_LIMIT,),
+                )
+                rows = cur.fetchall()
+            self._cooccurrence = [dict(r) for r in rows]
+        return self._cooccurrence[:top_n]
 
     def cooccurrence_matrix(self) -> dict[tuple[int, int], int]:
         """Returns a dict keyed by (min_id, max_id) → count for use in SetlistBuilder."""
@@ -471,9 +476,9 @@ class SetlistBuilder:
         }
         self._cooc = analytics.cooccurrence_matrix()
 
-        # Normalisation factors
+        # Normalisation factors (or 1 to avoid division by zero when all counts are 0)
         plays = [s["play_count"] for s in self._song_map.values()]
-        self._max_plays = max(plays) if plays else 1
+        self._max_plays = max(plays) or 1
 
         days_values = [
             r["days_since"]
@@ -604,14 +609,19 @@ class SetlistBuilder:
         """
         target_count = max(1, round(target_runtime_min / self._duration))
 
-        # Filter seeds to known, active, in-repertoire songs
-        valid_seeds = [
-            sid for sid in seed_song_ids
-            if sid in self._song_map
-            and self._song_map[sid].get("in_repertoire")
-            and not self._song_map[sid].get("is_jazz")
-        ]
-        seed_set = set(valid_seeds)
+        # Filter seeds to known, active, in-repertoire songs; deduplicate preserving order
+        _seen_seeds: set[int] = set()
+        valid_seeds: list[int] = []
+        for sid in seed_song_ids:
+            if (
+                sid not in _seen_seeds
+                and sid in self._song_map
+                and self._song_map[sid].get("in_repertoire")
+                and not self._song_map[sid].get("is_jazz")
+            ):
+                _seen_seeds.add(sid)
+                valid_seeds.append(sid)
+        seed_set = _seen_seeds
 
         # Candidate pool for filling gaps
         candidates = [
@@ -638,14 +648,24 @@ class SetlistBuilder:
 
             k = min(needed, len(ids))
             chosen = random.choices(ids, weights=weights, k=k * 3)  # oversample
-            seen: set = set()
-            deduped = []
+            seen: set[int] = set()
+            deduped: list[int] = []
             for c in chosen:
                 if c not in seen and c not in seed_set:
                     seen.add(c)
                     deduped.append(c)
                     if len(deduped) >= k:
                         break
+
+            # If weighted sampling didn't yield enough unique songs, fill from the
+            # sorted pool (handles heavily skewed weight distributions).
+            if len(deduped) < k:
+                for sid in ids:
+                    if sid not in seen and sid not in seed_set:
+                        seen.add(sid)
+                        deduped.append(sid)
+                        if len(deduped) >= k:
+                            break
 
             current.extend(deduped)
 
@@ -939,6 +959,11 @@ def main() -> None:
         help="Random seed for reproducible setlist generation.",
     )
     args = parser.parse_args()
+
+    if args.sets < 1:
+        sys.exit("--sets must be a positive integer")
+    if args.generate is not None and args.generate < 1:
+        sys.exit("--generate must be a positive integer")
 
     if args.seed is not None:
         random.seed(args.seed)
