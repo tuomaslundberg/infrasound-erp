@@ -11,8 +11,7 @@
 *Fully specced in `PHASE4_SPEC.md`. Branch `feat/phase4-polish` from `dev`.*
 
 - [ ] **Feature A: Geocoding verification map** — Leaflet map at `/admin/geocode-musicians`
-      showing all musician home pins; required to verify Joni's coordinates
-      (`Kirkkotie 2, 20540 Turku` may geocode ~3.8 km off)
+      showing all musician home pins
 - [ ] **Feature B: Entity extraction normalisation** — update `InquiryExtractor` system prompt
       to return all Finnish text fields in nominative (perusmuoto); handles venue names,
       customer names, city names
