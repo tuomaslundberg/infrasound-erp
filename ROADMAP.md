@@ -34,20 +34,7 @@ Write a `PHASE5_SPEC.md` covering these two features before implementation.
 
 ---
 
-### 4. Venue corpus ETL (venuu.fi)
-**Status:** fully specced — `cli/etl/VENUES_ETL_SPEC.md`
-
-This is the only remaining specced-but-unimplemented ETL. All other ETLs (songs, setlists,
-Spotify, invoicing) are already loaded in dev. Start with the pre-crawl checklist in the spec
-(robots.txt, URL structure, category taxonomy) before writing the crawler.
-
-**Note on step 5:** the Dropbox review (sprint 5) is placed *after* this ETL. Risk: if the
-review surfaces unexpected data sources, an additional ETL sprint will be needed before prod.
-If you suspect there are more sources to find, consider swapping sprints 4 and 5.
-
----
-
-### 5. Comprehensive Dropbox review
+### 4. Comprehensive Dropbox review
 **Status:** open-ended — no spec yet
 
 Goal: confirm that all data worth migrating has been identified and either loaded or specced
@@ -55,6 +42,20 @@ for ETL. Check `old-files/` and the live Dropbox workspace directory for any fil
 examined (invoicing, contracts, correspondence, etc.).
 
 Output: either "nothing new found" or a short ETL spec for newly discovered sources.
+Done before the venue corpus ETL so that any new data sources can be included in a single
+coherent ETL pass rather than discovered too late.
+
+---
+
+### 5. Venue corpus ETL (venuu.fi)
+**Status:** fully specced — `cli/etl/VENUES_ETL_SPEC.md`
+
+This is the only remaining specced-but-unimplemented ETL. All other ETLs (songs, setlists,
+Spotify, invoicing) are already loaded in dev. Start with the pre-crawl checklist in the spec
+(robots.txt, URL structure, category taxonomy) before writing the crawler.
+
+If the Dropbox review (sprint 4) surfaces additional data sources, spec and implement those
+alongside or after this sprint before moving to Phase 6.
 
 ---
 
