@@ -306,9 +306,5 @@ render_layout('Setlist Analytics', function () use (
   </div>
 
 </div><!-- /.tab-content -->
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmkTlPMG1s5xHjbSmLpRn1dbWhL"
-        crossorigin="anonymous"></script>
 <?php
 });

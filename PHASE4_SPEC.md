@@ -106,7 +106,9 @@ ALTER TABLE venues
     ADD COLUMN has_stage      TINYINT(1) DEFAULT NULL COMMENT '1=yes, 0=no, NULL=unknown',
     ADD COLUMN haze_allowed   TINYINT(1) DEFAULT NULL,
     ADD COLUMN outside_gig    TINYINT(1) DEFAULT NULL,
-    ADD COLUMN use_house_pa   TINYINT(1) DEFAULT NULL;
+    ADD COLUMN use_house_pa   TINYINT(1) DEFAULT NULL,
+    ADD COLUMN source         VARCHAR(50) DEFAULT NULL
+      COMMENT 'venuu = seeded from venuu.fi; NULL = created via inquiry pipeline or manually';
 ```
 
 Also add these columns to `db/schema/core.sql` in the `venues` table block.
@@ -121,10 +123,14 @@ Standard admin list page following the same pattern as `gigs/list.php`:
 - Query: `SELECT id, name, city, distance_from_turku_km, has_stage, haze_allowed, outside_gig, use_house_pa FROM venues WHERE deleted_at IS NULL ORDER BY city, name`
 - Table columns: Name, City, Distance (km), Stage, Haze, Outside, House PA, Actions (Edit)
 - Boolean columns render as ✓ / ✗ / — (yes / no / unknown)
-- "Edit" links to `?module=admin&action=venue_edit&id={id}`
-- "New venue" button at top
+- "Edit" links to `/admin/venues/{id}/edit`
+- "New venue" button links to `/admin/venues/new`
 
-Register at `src/index.php` under `admin` module: `'venue_list'` and `'venue_edit'` actions.
+Register path-based routes in `src/index.php`:
+- `GET /admin/venues` → venue list
+- `GET /admin/venues/new` → new venue form
+- `GET /admin/venues/{id}/edit` → edit form
+- `POST /admin/venues/{id}/edit` → save
 
 ### C3 — Venue edit form
 
@@ -154,7 +160,7 @@ Soft delete button (sets `deleted_at`) — show only if no gigs reference this v
 
 The venue name in the gig detail view is currently plain text. Make it a link to the venue edit page:
 ```html
-<a href="?module=admin&action=venue_edit&id=<?= $gig['venue_id'] ?>"><?= htmlspecialchars($gig['venue_name']) ?></a>
+<a href="/admin/venues/<?= $gig['venue_id'] ?>/edit"><?= htmlspecialchars($gig['venue_name']) ?></a>
 ```
 
 Also add a read-only row beneath the venue name showing the practical fields (has_stage, haze_allowed, outside_gig, use_house_pa) if any are set — as small badges.
@@ -213,9 +219,10 @@ Feature B (nominative normalisation) reduces the need for this fuzzy stage but d
 | `alina.kangas` | `vocals` |
 | `mortti.markkanen` | `bass` |
 
-### New endpoint: `src/modules/gigs/personnel_fill_default.php`
+### New endpoint
 
-Accepts POST with `gig_id`. Guards:
+Register `POST /gigs/{id}/fill-default-lineup` in `src/index.php`, handled by
+`src/modules/gigs/personnel_fill_default.php`. Accepts `gig_id` from the URL segment. Guards:
 - Gig must exist, not deleted
 - Gig status must be `confirmed`
 - `gig_personnel` must have 0 rows for this gig (refuse if already populated to avoid duplicates)
@@ -236,8 +243,7 @@ On error: redirect back with `?fill_error=1`.
 Show the button only when `status = 'confirmed'` AND `gig_personnel` count for this gig is 0:
 
 ```html
-<form method="post" action="?module=gigs&action=personnel_fill_default">
-    <input type="hidden" name="gig_id" value="<?= $gig['id'] ?>">
+<form method="post" action="/gigs/<?= $gig['id'] ?>/fill-default-lineup">
     <button class="btn btn-outline-secondary btn-sm">Fill default lineup</button>
 </form>
 ```

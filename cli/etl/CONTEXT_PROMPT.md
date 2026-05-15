@@ -84,8 +84,6 @@ Full design context: `cli/etl/BOOKKEEPING_CONTEXT.md`
 
 - **Joni's home address** — `Kirkkotie 2, 20540 Turku` may geocode incorrectly; verify
   via geocoding map (Phase 4 Feature A)
-- **Webhook debug logging** — `error_log('Webflow webhook payload: ...')` in
-  `src/modules/webhook/webflow.php`; safe to remove (prod Tilauslomake confirmed working)
 
 ---
 
