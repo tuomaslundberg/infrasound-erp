@@ -165,6 +165,11 @@ The venue name in the gig detail view is currently plain text. Make it a link to
 
 Also add a read-only row beneath the venue name showing the practical fields (has_stage, haze_allowed, outside_gig, use_house_pa) if any are set — as small badges.
 
+Also add a **"Car 2 trip"** row to the Pricing card (`src/modules/gigs/detail.php`) immediately
+after the existing "Car 1 trip" row, displaying `car2_distance_km` in the same format
+(`[value] km` / `—` if null). One-liner following the Car 1 pattern. No migration needed
+— `car2_distance_km` already exists on the `gigs` table.
+
 ---
 
 ## Feature D — Venue fuzzy lookup in GigCreator
