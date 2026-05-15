@@ -6,26 +6,13 @@
 
 ---
 
-## Immediate / operational
-
-- [ ] **Prod: seed + geocode musicians** — apply `db/seeds/musician_addresses.sql` (includes
-      Maxwell Car 2 fix), then run `/admin/geocode-musicians`; do this as part of the
-      full prod ETL transition from fresh Dropbox snapshot (see dev-log.md)
-- [ ] **Joni's home coordinates** — verify correct address via geocoding map (Phase 4
-      Feature A); `Kirkkotie 2, 20540 Turku` may geocode ~3.8 km off
-- [x] **Remove webhook debug logging** ✓
-- [x] **Disable Webflow email notifications** ✓
-
----
-
----
-
 ## Phase 4 — Venue + inquiry polish
 
 *Fully specced in `PHASE4_SPEC.md`. Branch `feat/phase4-polish` from `dev`.*
 
 - [ ] **Feature A: Geocoding verification map** — Leaflet map at `/admin/geocode-musicians`
-      showing all musician home pins; required to verify + fix Joni's coordinates
+      showing all musician home pins; required to verify Joni's coordinates
+      (`Kirkkotie 2, 20540 Turku` may geocode ~3.8 km off)
 - [ ] **Feature B: Entity extraction normalisation** — update `InquiryExtractor` system prompt
       to return all Finnish text fields in nominative (perusmuoto); handles venue names,
       customer names, city names
@@ -44,6 +31,9 @@
       do pre-crawl checklist first (robots.txt + URL structure)
 - [ ] **`customer_type` correction pass** — manual data pass on prod after ETL deploy;
       full list of known non-wedding gigs was in `TODO.md.legacy` §Easy issues (now retired)
+- [ ] **Prod: seed + geocode musicians** — apply `db/seeds/musician_addresses.sql` (includes
+      Maxwell Car 2 fix), then run `/admin/geocode-musicians`; part of full prod ETL transition
+      (see `dev-log.md`)
 
 ---
 
