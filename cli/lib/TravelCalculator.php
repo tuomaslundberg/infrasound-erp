@@ -40,10 +40,10 @@ require_once __DIR__ . '/RoutingHelper.php';
  */
 class TravelCalculator
 {
-    // Opettajankatu 9, Turku — trailer storage; always first Car 1 waypoint after driver home.
+    // Opettajankatu 9, 20900 Turku — trailer storage (Hirvensalo island); always first Car 1 waypoint after driver home.
     // Pre-geocoded from Nominatim. Update if storage location changes.
-    private const TRAILER_LAT = 60.4481;
-    private const TRAILER_LNG = 22.2547;
+    private const TRAILER_LAT = 60.4107;
+    private const TRAILER_LNG = 22.2272;
 
     /**
      * Calculate travel costs using personnel assigned to the gig in the database.

@@ -5,6 +5,134 @@ Format: date · who · what was done · suggested next steps.
 
 ---
 
+## 2026-05-14 — Sprint close: route fix, repo review, PHASE4_SPEC complete
+
+**Branch:** `feat/setlist-analytics` (ready to PR)
+
+### Done
+- Diagnosed Maxwell Car 2 route bug: `default_car=2` was missing from `musician_addresses.sql`
+  for maxwell.mbare; migration 012 only seeded Mortti + Lauri. Fixed in seed file + dev DB.
+  Result: route calculation now correctly assigns Maxwell as Car 2 driver when present.
+- Added Feature G (gig conversation context) to `PHASE4_SPEC.md`: migration 018
+  (`gig_messages` table), raw text persistence in process_inquiry.php + webflow.php,
+  collapsible display on gig detail. PHASE4_SPEC now covers 7 features A–G.
+- Full repo review pass: updated `CONTEXT_PROMPT.md` (was very stale — still referenced
+  feat/setlist-etl as open branch, 92% Spotify, wrong next steps), `TODO.md` (collapsed
+  stale branch section, added Feature G, added setlist analytics as ✓ in Phase 5),
+  `CHANGELOG.md` (Maxwell fix + Feature G entry).
+- Confirmed on prod: Tilauslomake creates status=confirmed with order_description ✓;
+  webhook debug logging is now safe to remove.
+- Confirmed prod seeds deferred by design: full ETL transition from fresh Dropbox snapshot;
+  migrations 001–014 applied on prod, no seeds yet.
+- Confirmed Spotify UI not yet wired (Phase 5); correct.
+
+### Prod deployment — when ready
+Full sequence once all ETL scripts are finalized and fresh Dropbox snapshot is taken:
+```
+make seed-musicians-prod              # includes Maxwell Car 2 fix
+make seed-musician-addresses-prod
+make geocode-musicians-prod
+make import-legacy-songs-prod
+make import-legacy-setlists-prod
+make import-legacy-spotify-prod
+make import-legacy-invoicing-prod
+# Then apply spotify_manual.sql to prod DB directly
+```
+Migrations 015 + 016 remain deferred (Phase 7).
+
+### Next steps
+1. **PR feat/setlist-analytics → dev → main** — clean 1-commit branch, ready
+2. **Remove webhook debug logging** — safe to do; confirmed working on prod
+3. **Phase 4 sprint** — branch `feat/phase4-polish` from `dev`; feed `PHASE4_SPEC.md`
+4. **Verify setlist analytics** — run `python cli/etl/analyze_setlists.py | head -100`
+   against dev DB; check --generate and --fill flags
+5. **Venue corpus** — pre-crawl checklist (robots.txt, URL structure) before writing script
+
+---
+
+## 2026-05-14 — Setlist analytics CLI + admin page
+
+**Branch:** `feat/setlist-analytics` (uncommitted — index.lock blocked commit from sandbox; run `git add -A && git commit` from terminal)
+
+### Done
+- Created `cli/etl/analyze_setlists.py`:
+  - `SetlistAnalytics` class: four cached query methods — `play_frequency()`, `recency()`,
+    `set_structure()`, `cooccurrence()`. Intentionally I/O-free so it can be embedded in
+    a future PHP wrapper (subprocess or port to PDO).
+  - `SetlistBuilder` class: `fill_and_order(seed_ids, target_runtime_min, set_count)` —
+    primary real-world function: takes unordered customer picks, fills/trims to target
+    runtime (using configurable avg song duration, default 3.5 min), orders by greedy
+    co-occurrence TSP, divides into sets. `generate_fresh(n, set_count)` for from-scratch
+    generation. Scoring: 0.6×frequency + 0.4×recency (stale songs given higher weight).
+  - CLI modes: default Markdown report to stdout, `--json`, `--generate N`,
+    `--fill ID,ID,...  --target MINUTES --sets N`, `--seed` for reproducibility.
+  - Set structure uses ROW_NUMBER() window function for gap-safe consecutive-pair
+    transitions (sort_order has gaps due to swap-based reorder).
+- Created `src/modules/admin/setlist_analytics.php` at `/admin/setlist-analytics`:
+  - Three-tab Bootstrap 5 layout: Top-40 (with year columns 2013–present),
+    Recency review (in_repertoire=1, not played >2yr; red highlight >3yr, grey = never),
+    Never-played.
+  - Summary strip: total songs, in-repertoire count, total play slots, stale count,
+    never-played count.
+  - PHP queries mirror Python definitions exactly (same recency threshold, same join logic).
+- Wired route in `src/index.php` and nav link in `src/templates/layout.php`.
+- Updated CHANGELOG.md.
+
+### Next steps
+1. **Commit from terminal** (index.lock blocked sandbox git):
+   ```
+   cd ~/projects/infrasound.fi
+   git add cli/etl/analyze_setlists.py src/modules/admin/setlist_analytics.php \
+           src/index.php src/templates/layout.php CHANGELOG.md
+   git commit -m "feat: setlist analytics CLI + admin page"
+   ```
+2. **Run the report against dev DB** to verify queries work:
+   ```
+   python cli/etl/analyze_setlists.py | head -100
+   python cli/etl/analyze_setlists.py --generate 20
+   ```
+3. **Test --fill flow** with a few real song IDs from the DB as a smoke-test of the builder.
+4. **Duration column (future)** — add `duration_ms INT DEFAULT NULL` to songs + populate
+   via Spotify track metadata API; SetlistBuilder already reads `avg_song_duration_min` as
+   a constructor param, so the upgrade path is: pass per-song durations once available.
+5. **PR feat/setlist-analytics → dev** when satisfied.
+
+---
+
+## 2026-05-14 — Phase 4 + venue ETL specs; Spotify coverage completed
+
+**Branch:** `main` / `dev` (in sync)
+
+### Done
+- Filled all 15 remaining Spotify track IDs (manual lookup by Tuomas); soft-deleted
+  the 15 featured-artist duplicate rows inserted by `import_spotify_playlist.py`
+  (unique constraint required nulling IDs before soft-delete); dev DB now 542/542 = 100%
+- Updated `spotify_manual.sql` to serve as prod replay: nulls IDs on duplicates first,
+  then assigns to original repertoire rows
+- Merged `feat/spotify-playlist-import` → `main` (went to main directly; dev synced
+  by fast-forward push)
+- Corrected default lineup spec: Alina Kangas (vocals), not Mikael Lehto (quit 2023);
+  annotated `INVOICING_ETL_SPEC.md` with explicit note
+- Wrote `PHASE4_SPEC.md` — full implementation spec for Phase 4 sprint (6 features):
+  geocoding map, entity normalisation in InquiryExtractor, venue schema + edit UI,
+  venue fuzzy lookup, default lineup auto-fill, gig list filters
+- Wrote `cli/etl/VENUES_ETL_SPEC.md` — venuu.fi crawl spec for Finnish venue corpus
+  (Varsinais-Suomi / Pirkanmaa / Uusimaa); includes pre-crawl checklist, type filtering
+  guidance, geocoding approach, SQL output format, Makefile targets
+- Updated `CONTEXT_PROMPT.md`, `TODO.md` to reference new specs
+
+### Next steps
+1. **Test on dev** — Tuomas to verify dev environment after merge
+2. **Phase 4 sprint** — `feat/phase4-polish` branched from `dev`; feed `PHASE4_SPEC.md`
+   to Claude Code; do features A → F in order (B before C; rest independent)
+3. **Venue corpus** — check venuu.fi robots.txt + URL structure first; then
+   `cli/etl/extract_venues.py` per `VENUES_ETL_SPEC.md`
+4. **Prod ETL deploy** — once dev is verified: apply migrations 013/014 to prod,
+   load all legacy seeds + `spotify_manual.sql`
+5. **Joni geocoding** — verify via geocoding map (Feature A); fix address if wrong
+
+---
+
 ## 2026-05-14 — Bookkeeping schema + context documentation
 
 **Branch:** `feat/setlist-etl` (documentation/schema only — no migrations applied yet)

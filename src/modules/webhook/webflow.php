@@ -91,9 +91,6 @@ if (!is_array($body)) {
     exit;
 }
 
-// Log full payload on first use to confirm Webflow's exact format.
-error_log('Webflow webhook payload: ' . json_encode($body));
-
 // Webflow V2 wraps submission data under payload.fields; V1 under data.
 // Support both gracefully.
 $formName = $body['payload']['nameAttr']
